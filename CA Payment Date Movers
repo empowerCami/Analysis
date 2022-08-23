@@ -1,0 +1,47 @@
+drop table #test1
+select
+distinct UserCashAdvanceId
+ , Amount
+ , substring((cast(AdvanceDate as varchar)), 6, 6) as [adv_date_str] --casting date to truncate to day 
+ , month(AdvanceDate) as adv_month 
+ , OriginalRepayDate
+ , RepayDate
+, case when OriginalRepayDate is not null AND OriginalRepayDate < RepayDate then 1 else 0 end as [date_pushed_ind] --Indicating when the orig date before the repay date 
+, case when OriginalRepayDate is null then 1 else 0 end as null_orig_paydate_flag
+, datediff(day, OriginalRepayDate, RepayDate) as [payment_date_delta] --difference btwn date actually paid vs date originally assigned
+, CashAdvanceStatus
+into #test1
+from UserCashAdvance
+where 1=1
+and AdvanceDate between '2022-05-01' and '2022-07-31' -- looking at last 3 full months 
+;
+
+--select adv_date_str, null_orig_paydate_flag, date_pushed_ind, count(distinct usercashadvanceid) as tot_cust from #test1 group by adv_date_str, null_orig_paydate_flag, date_pushed_ind;
+
+drop table #test2
+SELECT
+*
+--adding logic to categorize how much people pushed their payment
+, case when payment_date_delta between 1 and 14 then '1-14' 
+when payment_date_delta between 15 and 30 then '15-30' 
+when payment_date_delta > 30 then '>30' 
+else 'n/a'
+end as payment_push_amount
+into #test2
+from #test1
+;
+
+
+select top (1000) * from #test2 where originalRepayDate is not null; and date_pushed_ind = 0; where date_moved_ind =1;
+
+SELECT
+adv_date_str
+, adv_month
+, cashadvancestatus
+, amount
+, date_pushed_ind
+, payment_push_amount
+, count(distinct UserCashAdvanceId) as tot_cust
+from #test2
+group by adv_date_str, adv_month, cashadvancestatus, amount, date_pushed_ind, payment_push_amount
+;
