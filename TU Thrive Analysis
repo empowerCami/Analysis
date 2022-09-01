@@ -1,0 +1,708 @@
+---Transunion XML Extract Script
+
+drop table if exists #UserCreditReports_xml;
+
+SELECT --TOP 1000
+		UserCreditReportId,
+		UserId,
+        CreatedAt,
+        FIRST_VALUE(CreatedAt) OVER(PARTITION BY UserId  ORDER BY CreatedAt DESC) AS CreatedAt_last,
+		CAST(
+			REPLACE(
+				REPLACE([Data], '<?xml version="1.0" encoding="UTF-8"?>', ''),
+				N'<creditBureau xmlns="http://www.transunion.com/namespace" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.transunion.com/namespace">',
+				N'<creditBureau>')
+			as xml) as XmlData
+into #UserCreditReports_xml
+FROM dbo.UserCreditReports
+where UserCreditReportId > 15;
+
+--select top 100 * from #UserCreditReports_xml;
+drop table if exists #UserCreditReports_xml_deduped
+SELECT
+*
+into #UserCreditReports_xml_deduped
+from #UserCreditReports_xml
+where CreatedAt = CreatedAt_last
+;
+
+--select * from #UserCreditReports_xml_deduped;
+
+--select count(distinct userId) as userID, count(distinct UserCreditReportId) as creditID, count(*) from #UserCreditReports_xml_deduped;
+--select count(distinct userId) as userID, count(distinct UserCreditReportId) as creditID, count(*) from #UserCreditReports_xml;
+
+--select top(100) * from dbo.UserCreditReports;
+--select top 10 * from #UserCreditReports_xml;
+
+drop table if exists #Thrive_TU_attr;
+with cteFileHitIndicator as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+        CreatedAt,
+		X.Y.value('(fileHitIndicator)[1]', 'varchar(1000)') as 'fileHitIndicator'
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		OUTER APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/fileSummary') as X(Y)
+), 
+cteAddOnProducts_fico as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+		X.Y.value('(code)[1]', 'varchar(1000)') as 'Code',
+		X.Y.value('(status)[1]', 'varchar(1000)') as 'Status',
+        X.Y.value('(scoreModel/score/results)[1]', 'varchar(1000)') as 'FICO'
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		CROSS APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/addOnProduct') as X(Y)
+),
+cteAddOnProducts_CV as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+        --- this is how you grab what features you need from the data dict
+		X.Y.value('(code)[1]', 'varchar(1000)') as 'Code',
+		X.Y.value('(status)[1]', 'varchar(1000)') as 'Status',
+
+		---grabbing individual tradelines below
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[1]', 'varchar(1000)') as subscriber_name1,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[2]', 'varchar(1000)') as subscriber_name2,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[3]', 'varchar(1000)') as subscriber_name3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[4]', 'varchar(1000)') as subscriber_name4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[5]', 'varchar(1000)') as subscriber_name5,
+	    X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[6]', 'varchar(1000)') as subscriber_name6,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[7]', 'varchar(1000)') as subscriber_name7,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[8]', 'varchar(1000)') as subscriber_name8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[9]', 'varchar(1000)') as subscriber_name9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[10]', 'varchar(1000)') as subscriber_name10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[11]', 'varchar(1000)') as subscriber_name11,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[12]', 'varchar(1000)') as subscriber_name12,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[13]', 'varchar(1000)') as subscriber_name13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[14]', 'varchar(1000)') as subscriber_name14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[15]', 'varchar(1000)') as subscriber_name15,
+	    X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[16]', 'varchar(1000)') as subscriber_name16,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[17]', 'varchar(1000)') as subscriber_name17,
+        X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[18]', 'varchar(1000)') as subscriber_name18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[19]', 'varchar(1000)') as subscriber_name19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/subscriber/name/unparsed)[20]', 'varchar(1000)') as subscriber_name20,
+
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[1]', 'varchar(1000)') as portfolio_type1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[2]', 'varchar(1000)') as portfolio_type2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[3]', 'varchar(1000)') as portfolio_type3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[4]', 'varchar(1000)') as portfolio_type4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[5]', 'varchar(1000)') as portfolio_type5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[6]', 'varchar(1000)') as portfolio_type6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[7]', 'varchar(1000)') as portfolio_type7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[8]', 'varchar(1000)') as portfolio_type8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[9]', 'varchar(1000)') as portfolio_type9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[10]', 'varchar(1000)') as portfolio_type10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[11]', 'varchar(1000)') as portfolio_type11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[12]', 'varchar(1000)') as portfolio_type12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[13]', 'varchar(1000)') as portfolio_type13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[14]', 'varchar(1000)') as portfolio_type14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[15]', 'varchar(1000)') as portfolio_type15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[16]', 'varchar(1000)') as portfolio_type16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[17]', 'varchar(1000)') as portfolio_type17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[18]', 'varchar(1000)') as portfolio_type18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[19]', 'varchar(1000)') as portfolio_type19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/portfolioType)[20]', 'varchar(1000)') as portfolio_type20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[1]', 'varchar(1000)') as date_Opened1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[2]', 'varchar(1000)') as date_Opened2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[3]', 'varchar(1000)') as date_Opened3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[4]', 'varchar(1000)') as date_Opened4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[5]', 'varchar(1000)') as date_Opened5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[6]', 'varchar(1000)') as date_Opened6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[7]', 'varchar(1000)') as date_Opened7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[8]', 'varchar(1000)') as date_Opened8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[9]', 'varchar(1000)') as date_Opened9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[10]', 'varchar(1000)') as date_Opened10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[11]', 'varchar(1000)') as date_Opened11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[12]', 'varchar(1000)') as date_Opened12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[13]', 'varchar(1000)') as date_Opened13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[14]', 'varchar(1000)') as date_Opened14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[15]', 'varchar(1000)') as date_Opened15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[16]', 'varchar(1000)') as date_Opened16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[17]', 'varchar(1000)') as date_Opened17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[18]', 'varchar(1000)') as date_Opened18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[19]', 'varchar(1000)') as date_Opened19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/dateOpened)[20]', 'varchar(1000)') as date_Opened20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[1]' , 'varchar(1000)') as acct_rating1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[2]' , 'varchar(1000)') as acct_rating2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[3]' , 'varchar(1000)') as acct_rating3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[4]' , 'varchar(1000)') as acct_rating4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[5]' , 'varchar(1000)') as acct_rating5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[6]' , 'varchar(1000)') as acct_rating6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[7]' , 'varchar(1000)') as acct_rating7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[8]' , 'varchar(1000)') as acct_rating8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[9]' , 'varchar(1000)') as acct_rating9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[10]' , 'varchar(1000)') as acct_rating10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[11]' , 'varchar(1000)') as acct_rating11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[12]' , 'varchar(1000)') as acct_rating12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[13]' , 'varchar(1000)') as acct_rating13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[14]' , 'varchar(1000)') as acct_rating14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[15]' , 'varchar(1000)') as acct_rating15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[16]' , 'varchar(1000)') as acct_rating16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[17]' , 'varchar(1000)') as acct_rating17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[18]' , 'varchar(1000)') as acct_rating18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[19]' , 'varchar(1000)') as acct_rating19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/accountRating)[20]' , 'varchar(1000)') as acct_rating20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[1]' ,  'varchar(1000)') as acct_CL1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[2]' ,  'varchar(1000)') as acct_CL2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[3]' ,  'varchar(1000)') as acct_CL3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[4]' ,  'varchar(1000)') as acct_CL4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[5]' ,  'varchar(1000)') as acct_CL5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[6]' ,  'varchar(1000)') as acct_CL6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[7]' ,  'varchar(1000)') as acct_CL7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[8]' ,  'varchar(1000)') as acct_CL8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[9]' ,  'varchar(1000)') as acct_CL9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[10]' ,  'varchar(1000)') as acct_CL10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[11]' ,  'varchar(1000)') as acct_CL11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[12]' ,  'varchar(1000)') as acct_CL12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[13]' ,  'varchar(1000)') as acct_CL13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[14]' ,  'varchar(1000)') as acct_CL14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[15]' ,  'varchar(1000)') as acct_CL15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[16]' ,  'varchar(1000)') as acct_CL16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[17]' ,  'varchar(1000)') as acct_CL17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[18]' ,  'varchar(1000)') as acct_CL18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[19]' ,  'varchar(1000)') as acct_CL19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[20]' ,  'varchar(1000)') as acct_CL20,
+
+        X.Y.value('(CVCreditSummary/recordCounts/openTradeCount)[1]', 'varchar(1000)') as Open_Trade_Count_total,
+        X.Y.value('(CVCreditSummary/reportingPeriod)[1]', 'varchar(1000)') as reportingPeriod,
+        X.Y.value('(CVCreditSummary/totalAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_total,
+        X.Y.value('(CVCreditSummary/totalAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_total,
+        X.Y.value('(CVCreditSummary/revolvingAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_revolving,
+        X.Y.value('(CVCreditSummary/revolvingAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_revolving,
+        X.Y.value('(CVCreditSummary/revolvingAmount/mostRecentPayment/amount)[1]', 'varchar(1000)') as mostRecentPaymentAmount_revolving,
+        X.Y.value('(CVCreditSummary/installmentAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_installment,
+        X.Y.value('(CVCreditSummary/installmentAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_installment,
+        X.Y.value('(CVCreditSummary/recordCounts/collectionCount)[1]', 'varchar(1000)') as collectionCount,
+        X.Y.value('(CVCreditSummary/recordCounts/totalTradeCount)[1]', 'varchar(1000)') as totalTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/negativeTradeCount)[1]', 'varchar(1000)') as negativeTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/historicalNegativeTradeCount)[1]', 'varchar(1000)') as historicalNegativeTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/revolvingTradeCount)[1]', 'varchar(1000)') as revolvingTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/installmentTradeCount)[1]', 'varchar(1000)') as installmentTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openRevolvingTradeCount)[1]', 'varchar(1000)') as openRevolvingTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openInstallmentTradeCount)[1]', 'varchar(1000)') as openInstallmentTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openMortgageTradeCount)[1]', 'varchar(1000)') as openMortgageTradeCount,
+        X.Y.value('(CVCreditSummary/mostRecentDelinquency/accountRating)[1]', 'varchar(1000)') as mostRecentDQstatus,
+        X.Y.value('(CVCreditSummary/mostRecentDelinquency/date)[1]', 'varchar(1000)') as mostRecentDQdate,
+        X.Y.value('(CVCreditSummary/recordCounts/totalInquiryCount)[1]', 'varchar(1000)') as totalInquiryCount
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		CROSS APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/addOnProduct') as X(Y)
+)
+
+-- drop table if exists #Thrive_TU_attr;
+SELECT 
+hit.UserCreditReportId,
+hit.UserId, 
+hit.CreatedAt,
+hit.fileHitIndicator, 
+--aop_fico.Status,
+aop_fico.Code as fico_code,
+aop_fico.FICO,
+aop_CV.code as CV_code,
+-- cast(aop_CV.creditLimit_total as int) as creditLimit_total,
+-- cast(aop_CV.currentBalance_total as int) as currentBalance_total,
+-- cast(aop_CV.creditLimit_revolving as int) as creditLimit_revolving,
+-- cast(aop_CV.currentBalance_revolving as int) as currentBalance_revolving,
+-- cast(aop_CV.creditLimit_installment as int) as creditLimit_installment,
+-- cast(aop_CV.currentBalance_installment as int) as currentBalance_installment,
+aop_CV.Open_Trade_Count_total,
+aop_CV.subscriber_name1,
+aop_CV.portfolio_type1,
+aop_CV.date_Opened1,
+aop_CV.acct_rating1,
+aop_CV.acct_CL1,
+aop_CV.subscriber_name2,
+aop_CV.portfolio_type2,
+aop_CV.date_Opened2,
+aop_CV.acct_rating2,
+aop_CV.acct_CL2,
+aop_CV.subscriber_name3,
+aop_CV.portfolio_type3,
+aop_CV.date_Opened3,
+aop_CV.acct_rating3,
+aop_CV.acct_CL3,
+aop_CV.subscriber_name4,
+aop_CV.portfolio_type4,
+aop_CV.date_Opened4,
+aop_CV.acct_rating4,
+aop_CV.acct_CL4,
+aop_CV.subscriber_name5,
+aop_CV.portfolio_type5,
+aop_CV.date_Opened5,
+aop_CV.acct_rating5,
+aop_CV.acct_CL5,
+aop_CV.subscriber_name6,
+aop_CV.portfolio_type6,
+aop_CV.date_Opened6,
+aop_CV.acct_rating6,
+aop_CV.acct_CL6,
+aop_CV.subscriber_name7,
+aop_CV.portfolio_type7,
+aop_CV.date_Opened7,
+aop_CV.acct_rating7,
+aop_CV.acct_CL7,
+aop_CV.subscriber_name8,
+aop_CV.portfolio_type8,
+aop_CV.date_Opened8,
+aop_CV.acct_rating8,
+aop_CV.acct_CL8,
+aop_CV.subscriber_name9,
+aop_CV.portfolio_type9,
+aop_CV.date_Opened9,
+aop_CV.acct_rating9,
+aop_CV.acct_CL9,
+aop_CV.subscriber_name10,
+aop_CV.portfolio_type10,
+aop_CV.date_Opened10,
+aop_CV.acct_rating10,
+aop_CV.acct_CL10,
+aop_CV.subscriber_name11,
+aop_CV.portfolio_type11,
+aop_CV.date_Opened11,
+aop_CV.acct_rating11,
+aop_CV.acct_CL11,
+aop_CV.subscriber_name12,
+aop_CV.portfolio_type12,
+aop_CV.date_Opened12,
+aop_CV.acct_rating12,
+aop_CV.acct_CL12,
+aop_CV.subscriber_name13,
+aop_CV.portfolio_type13,
+aop_CV.date_Opened13,
+aop_CV.acct_rating13,
+aop_CV.acct_CL13,
+aop_CV.subscriber_name14,
+aop_CV.portfolio_type14,
+aop_CV.date_Opened14,
+aop_CV.acct_rating14,
+aop_CV.acct_CL14,
+aop_CV.subscriber_name15,
+aop_CV.portfolio_type15,
+aop_CV.date_Opened15,
+aop_CV.acct_rating15,
+aop_CV.acct_CL15,
+aop_CV.subscriber_name16,
+aop_CV.portfolio_type16,
+aop_CV.date_Opened16,
+aop_CV.acct_rating16,
+aop_CV.acct_CL16,
+aop_CV.subscriber_name17,
+aop_CV.portfolio_type17,
+aop_CV.date_Opened17,
+aop_CV.acct_rating17,
+aop_CV.acct_CL17,
+aop_CV.subscriber_name18,
+aop_CV.portfolio_type18,
+aop_CV.date_Opened18,
+aop_CV.acct_rating18,
+aop_CV.acct_CL18,
+aop_CV.subscriber_name19,
+aop_CV.portfolio_type19,
+aop_CV.date_Opened19,
+aop_CV.acct_rating19,
+aop_CV.acct_CL19,
+aop_CV.subscriber_name20,
+aop_CV.portfolio_type20,
+aop_CV.date_Opened20,
+aop_CV.acct_rating20,
+aop_CV.acct_CL20,
+
+aop_CV.reportingPeriod,
+aop_CV.creditLimit_total,
+aop_CV.currentBalance_total,
+aop_CV.creditLimit_revolving,
+aop_CV.currentBalance_revolving,
+aop_CV.mostRecentPaymentAmount_revolving,
+aop_CV.creditLimit_installment,
+aop_CV.currentBalance_installment,
+aop_CV.collectionCount,
+aop_CV.totalTradeCount,
+aop_CV.negativeTradeCount,
+aop_CV.revolvingTradeCount,
+aop_CV.installmentTradeCount,
+aop_CV.openRevolvingTradeCount,
+aop_CV.openInstallmentTradeCount,
+aop_CV.historicalNegativeTradeCount,
+aop_CV.openMortgageTradeCount,
+aop_CV.mostRecentDQstatus,
+aop_CV.mostRecentDQdate,
+aop_CV.totalInquiryCount
+-- aop.collectionCount
+
+into #Thrive_TU_attr
+FROM cteFileHitIndicator as hit
+left JOIN cteAddOnProducts_fico as aop_fico
+ON hit.UserCreditReportId = aop_fico.UserCreditReportId
+and aop_fico.Code = '001NN'
+left join cteAddOnProducts_CV as aop_CV
+on hit.UserCreditReportId = aop_CV.UserCreditReportId
+and aop_CV.Code = '07226'
+;
+
+select * from #Thrive_TU_attr;
+
+-- UNION ALL ACCT INFO TO MAKE ONE ROW PER TRADELINE
+
+drop table if exists #acct_union
+select 
+distinct userId ,  subscriber_name1 as issuer , date_opened1 as date_opened , portfolio_type1 as acct_type, acct_CL1 as acct_credit_line, acct_rating1 as acct_status
+into #acct_union
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name2 as issuer , date_opened2 as date_opened , portfolio_type2 as acct_type, acct_CL2 as acct_credit_line, acct_rating2 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name3 as issuer , date_opened3 as date_opened , portfolio_type3 as acct_type, acct_CL3 as acct_credit_line, acct_rating3 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name4 as issuer , date_opened4 as date_opened , portfolio_type4 as acct_type, acct_CL4 as acct_credit_line, acct_rating4 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name5 as issuer , date_opened5 as date_opened , portfolio_type5 as acct_type, acct_CL5 as acct_credit_line, acct_rating5 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name6 as issuer , date_opened6 as date_opened , portfolio_type6 as acct_type, acct_CL6 as acct_credit_line, acct_rating6 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId, subscriber_name7 as issuer , date_opened7 as date_opened , portfolio_type7 as acct_type, acct_CL7 as acct_credit_line, acct_rating7 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name8 as issuer , date_opened8 as date_opened , portfolio_type8 as acct_type, acct_CL8 as acct_credit_line, acct_rating8 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name9 as issuer , date_opened9 as date_opened , portfolio_type9 as acct_type, acct_CL9 as acct_credit_line, acct_rating9 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name10 as issuer , date_opened10 as date_opened , portfolio_type10 as acct_type, acct_CL10 as acct_credit_line, acct_rating10 as acct_status
+from #Thrive_TU_attr
+select 
+distinct userId ,  subscriber_name11 as issuer , date_opened11 as date_opened , portfolio_type11 as acct_type, acct_CL11 as acct_credit_line, acct_rating11 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name12 as issuer , date_opened12 as date_opened , portfolio_type12 as acct_type, acct_CL12 as acct_credit_line, acct_rating12 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name13 as issuer , date_opened13 as date_opened , portfolio_type13 as acct_type, acct_CL13 as acct_credit_line, acct_rating13 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name14 as issuer , date_opened14 as date_opened , portfolio_type14 as acct_type, acct_CL14 as acct_credit_line, acct_rating14 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name15 as issuer , date_opened15 as date_opened , portfolio_type15 as acct_type, acct_CL15 as acct_credit_line, acct_rating15 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name16 as issuer , date_opened16 as date_opened , portfolio_type16 as acct_type, acct_CL16 as acct_credit_line, acct_rating16 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name17 as issuer , date_opened17 as date_opened , portfolio_type17 as acct_type, acct_CL17 as acct_credit_line, acct_rating17 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name18 as issuer , date_opened18 as date_opened , portfolio_type18 as acct_type, acct_CL18 as acct_credit_line, acct_rating18 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId, subscriber_name19 as issuer , date_opened19 as date_opened , portfolio_type19 as acct_type, acct_CL19 as acct_credit_line, acct_rating19 as acct_status
+from #Thrive_TU_attr
+UNION ALL
+select
+distinct userId,  subscriber_name20 as issuer , date_opened20 as date_opened , portfolio_type20 as acct_type, acct_CL20 as acct_credit_line, acct_rating20 as acct_status
+from #Thrive_TU_attr
+;
+
+
+--- drop rows where tradeline is null (meaning user didn't have that number of tradelines)
+drop table if exists #acct_union_cleaned
+SELECT 
+userId 
+, issuer 
+, substring(date_opened, 1, 7) as open_yr_month
+, acct_type 
+, acct_status
+, REPLACE(LTRIM(REPLACE(acct_credit_line, '0', ' ')),' ', '0') as acct_credit_line 
+, row_number() over(partition by UserId order by date_opened desc) as row_num
+into #acct_union_cleaned
+from #acct_union 
+where issuer is not null
+;
+
+
+
+drop table if exists #acct_union_cleaned2
+SELECT 
+distinct userId 
+, issuer 
+, open_yr_month
+, acct_type 
+, acct_status
+, row_num
+, cast(acct_credit_line as int) as acct_credit_line
+into #acct_union_cleaned2
+from #acct_union_cleaned
+;
+--select * from #acct_union_cleaned2;
+
+-- select count(distinct userID) from #acct_union_cleaned; --6862
+
+-- select count(distinct userID) from #Thrive_TU_attr; -- 7369
+
+-- select * from #acct_union_cleaned order by userId;
+
+---CREATING SEGMENTATION FOR ANALYSIS
+drop table if exists #acct_union_cleaned_filtered
+SELECT 
+userId
+, issuer 
+, open_yr_month 
+, acct_type 
+, acct_status
+, acct_credit_line 
+, case when acct_credit_line is null then 'a. NA'
+when acct_credit_line < 50 then 'b. <$50'
+when acct_credit_line between 50 and 199 then 'c. [$50-$200)'
+when acct_credit_line between 200 and 299 then 'd. [$200-$300)'
+when acct_credit_line between 300 and 499 then 'e. [$300-$500)'
+when acct_credit_line between 500 and 999 then 'f. [$500-$1,000)'
+when acct_credit_line >= 1000 then 'g. $1,000+'
+end as CL_category
+, row_num 
+
+into #acct_union_cleaned_filtered
+from #acct_union_cleaned2
+--  
+;
+
+-- ANALYSIS QUERIES BELOW
+-- SELECT 
+-- issuer 
+-- , acct_type 
+-- , acct_status
+-- , acct_credit_line 
+-- , CL_category
+-- , row_num 
+-- , count(distinct userID) as tot_users
+
+-- from #acct_union_cleaned_filtered
+-- group by issuer  , acct_type , acct_status , acct_credit_line , CL_category, row_num
+-- ;
+
+
+-- select * from #acct_union_cleaned_filtered;
+
+-- drop table if exists #issuer_checks
+-- SELECT 
+-- issuer 
+-- , count(distinct userID) as tot_users
+-- into #issuer_checks
+-- from #acct_union_cleaned 
+-- where row_num = 1
+-- group by issuer
+-- ;
+
+-- select * from #issuer_checks where tot_users >= 10;
+
+-- select 
+-- * 
+-- from #acct_union_cleaned_filtered
+-- where tot_users > 5
+-- ;
+
+-- select * from #acct_union_cleaned;
+
+
+-- select * from #acct_union order by UserId;
+
+
+drop table if exists #TU_plus_cashflow;
+SELECT
+a.*,
+DateGenerated,
+UserCreditVariableId,
+FIRST_VALUE(DateGenerated) OVER(PARTITION BY a.UserId, CreatedAt ORDER BY DateGenerated DESC) AS DateGenerated_last,
+case when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 1 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 1 then 'BruteForce'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 2 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 2 then 'DeepSearch'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 3 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 3 then 'Tagging'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 4 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 4 then 'VariableIncome'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 5 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 5 then 'SinglePaycheckAtEmpower'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 7 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 7 then 'MinimalIncome'
+	else 'None'
+end AS [PaycheckModelUsed], 
+MLModelScore,
+BalanceAverage, AverageMonthlySpend, TotalCash, AverageMonthlyIncome, Paycheck, Income, 
+OutstandingCompetitorBalance, PaycheckAccountCurrentBalance
+into #TU_plus_cashflow
+from #Thrive_TU_attr a 
+left join (select UserId, UserCreditVariableId, DateGenerated, PaycheckArchetype, MLModelScore,
+			BalanceAverage, AverageMonthlySpend, TotalCash, AverageMonthlyIncome, Paycheck, Income, 
+OutstandingCompetitorBalance, PaycheckAccountCurrentBalance
+	from UserCreditVariable with (nolock)
+	where (DateGenerated >= '2021-06-01' and DateGenerated < '2022-02-19' and CreditVariableEdition = 1)
+			or (DateGenerated >= '2022-02-19' and CreditVariableEdition = 2)
+	) b 
+on a.UserId = b.UserId 
+and DateGenerated < CreatedAt
+and DateGenerated > DATEADD(Day,-5,CreatedAt);
+
+--select top 100 * from #TU_plus_cashflow_clean;
+drop table if exists #TU_plus_cashflow_clean;
+SELECT
+a.*
+, cast(FICO as int) as FICO_clean
+INTO #TU_plus_cashflow_clean
+from #TU_plus_cashflow a
+where (DateGenerated = DateGenerated_last or DateGenerated is null);
+
+-- select top 100 * from #TU_plus_cashflow_clean;
+--select count(*), count(distinct UserId) from #TU_plus_cashflow_clean;
+
+drop table if exists #TU_plus_cashflow_clean2;
+SELECT
+distinct userId
+--, CreatedAt
+, substring((cast(CreatedAt as varchar)), 0, 8) as created_year_month --casting date to truncate to Y/M
+, substring((cast(CreatedAt as varchar)), 0, 11) as created_year_month_day --casting date to truncate to Y/M
+, FICO
+, case when FICO_clean < 500 then '< 500'
+when FICO_clean between 500 and 549 then '500-549'
+when FICO_clean between 550 and 599 then '550-599' 
+when FICO_clean >= 600 then '600+'
+end as fico_cat
+
+, floor(FICO/10)*10 as FICO_cat_10s
+, floor(FICO/25)*25 as FICO_cat_25s
+, REPLACE(LTRIM(REPLACE(open_trade_count_total, '0', ' ')),' ', '0') as open_trade_count_total
+, REPLACE(LTRIM(REPLACE(openRevolvingTradeCount, '0', ' ')),' ', '0') as openRevolvingTradeCount
+, REPLACE(LTRIM(REPLACE(openInstallmentTradeCount, '0', ' ')),' ', '0') as openInstallmentTradeCount
+, REPLACE(LTRIM(REPLACE(creditLimit_total, '0', ' ')),' ', '0') as creditLimit_total 
+, REPLACE(LTRIM(REPLACE(currentBalance_total, '0', ' ')),' ', '0') as currentBalance_total 
+, REPLACE(LTRIM(REPLACE(creditLimit_revolving, '0', ' ')),' ', '0') as creditLimit_revolving-- get rid of leading 0s
+, REPLACE(LTRIM(REPLACE(currentBalance_revolving, '0', ' ')),' ', '0') as currentBalance_revolving-- get rid of leading 0s
+, REPLACE(LTRIM(REPLACE(currentBalance_installment, '0', ' ')),' ', '0') as currentBalance_installment
+, REPLACE(LTRIM(REPLACE(totalTradeCount, '0', ' ')),' ', '0') as totalTradeCount
+, REPLACE(LTRIM(REPLACE(revolvingTradeCount, '0', ' ')),' ', '0') as revolvingTradeCount
+, REPLACE(LTRIM(REPLACE(installmentTradeCount, '0', ' ')),' ', '0') as installmentTradeCount
+, REPLACE(LTRIM(REPLACE(collectionCount, '0', ' ')),' ', '0') as collectionCount
+, REPLACE(LTRIM(REPLACE(negativeTradeCount, '0', ' ')),' ', '0') as negativeTradeCount --currently DQ within selected time period
+, REPLACE(LTRIM(REPLACE(historicalNegativeTradeCount, '0', ' ')),' ', '0') as historicalNegativeTradeCount --number DQ ever within selected time period
+, REPLACE(LTRIM(REPLACE(openMortgageTradeCount, '0', ' ')),' ', '0') as openMortgageTradeCount --currently DQ within selected time period
+, REPLACE(LTRIM(REPLACE(totalInquiryCount, '0', ' ')),' ', '0') as totalInquiryCount
+
+, mostRecentDQstatus
+, mostRecentDQdate
+, PaycheckModelUsed
+--, round(MLModelScore, 2) as MLModelScore_rounded 
+, floor(MLModelScore/0.01)*0.01 as MLModelScore_1s
+, MLModelScore
+, case when floor(MLModelScore/0.01)*0.01 = 0 then '(0-0.01)'
+when floor(MLModelScore/0.01)*0.01 = 0.01 then '[0.01-0.02)'
+when floor(MLModelScore/0.01)*0.01 = 0.02 then '[0.02-0.03)'
+when floor(MLModelScore/0.01)*0.01 = 0.03 then '[0.03-0.04)'
+when floor(MLModelScore/0.01)*0.01 = 0.04 then '[0.04-0.05)'
+when floor(MLModelScore/0.01)*0.01 between 0.05 and 0.1 then '[0.05-0.10]'
+when floor(MLModelScore/0.01)*0.01 > 0.1 then '0.11+'
+end as model_cat_floor 
+, balanceAverage as checkingAcct_balanceAverage
+, AverageMonthlySpend 
+, paycheck
+, floor(Paycheck/500)*500 as paycheck_cat
+, averageMonthlyIncome
+, DATEDIFF(DAY, mostRecentDQdate, CreatedAt) AS days_since_last_DQ
+, case when createdAt between '2021-11-01' and  '2021-12-31' then 'Nov - Dec 2021'
+when createdAt between '2022-04-01' and  '2022-06-30' then 'Apr - Jun 2022'
+else 'Other'
+end as date_cat
+into #TU_plus_cashflow_clean2
+from #TU_plus_cashflow_clean
+;
+
+--select * from #TU_plus_cashflow_clean2;
+
+--select distinct revolvingTradeCount from #TU_plus_cashflow_clean2;
+
+drop table if exists #TU_plus_cashflow_clean3;
+SELECT
+distinct userId as userId_b
+, created_year_month
+, fico 
+, fico_cat 
+, fico_cat_25s 
+
+--- converting nulls into 0's to properly capture averages
+, case when open_trade_count_total is null then 0 when open_trade_count_total = 'NA' then 0 else open_trade_count_total end as open_trade_count_total_clean
+, case when openRevolvingTradeCount is null then 0 when openRevolvingTradeCount = 'NA' then 0 else openRevolvingTradeCount end as openRevolvingTradeCount_clean
+, case when openInstallmentTradeCount is null then 0 when openInstallmentTradeCount = 'NA' then 0 else openInstallmentTradeCount end as openInstallmentTradeCount_clean
+, case when negativeTradeCount is null then 0 when negativeTradeCount = 'NA' then 0 else negativeTradeCount end as negativeTradeCount_clean
+, case when revolvingTradeCount is null then 0 when revolvingTradeCount = 'NA' then 0 else revolvingTradeCount end as revolvingTradeCount_clean
+, case when installmentTradeCount is null then 0 when installmentTradeCount = 'NA' then 0 else installmentTradeCount end as installmentTradeCount_clean
+, case when totalInquiryCount is null then 0 when totalInquiryCount = 'NA' then 0 else totalInquiryCount end as totalInquiryCount_clean
+, case when collectionCount is null then 0 when collectionCount = 'NA' then 0 else collectionCount end as collectionCount_clean
+, case when totalTradeCount is null then 0 when totalTradeCount = 'NA' then 0 else totalTradeCount end as totalTradeCount_clean
+, case when historicalNegativeTradeCount is null then 0 when historicalNegativeTradeCount = 'NA' then 0 else historicalNegativeTradeCount end as historicalNegativeTradeCount_clean
+, case when creditLimit_total is null then 0 when creditLimit_total = 'NA' then 0 else creditLimit_total end as creditLimit_total_clean
+, case when currentBalance_total is null then 0 when currentBalance_total = 'NA' then 0 else currentBalance_total end as currentBalance_total_clean
+, case when creditLimit_revolving is null then 0 when creditLimit_revolving = 'NA' then 0 else creditLimit_revolving end as creditLimit_revolving_clean
+, case when currentBalance_revolving is null then 0 when currentBalance_revolving = 'NA' then 0 else currentBalance_revolving end as currentBalance_revolving_clean
+, case when currentBalance_installment is null then 0 when currentBalance_installment = 'NA' then 0 else currentBalance_installment end as currentBalance_installment_clean
+, case when days_since_last_DQ is null then 0 else days_since_last_DQ end as days_since_last_DQ_clean
+, mostRecentDQstatus 
+, paycheckModelUsed 
+, model_cat_floor 
+, checkingAcct_balanceAverage 
+, AverageMonthlySpend 
+, paycheck 
+, paycheck_cat 
+, averageMonthlyIncome 
+, date_cat
+into #TU_plus_cashflow_clean3
+from #TU_plus_cashflow_clean2
+;
+--select count(distinct UserID_b), count(*)  from #TU_plus_cashflow_clean3;
+
+drop table if exists #master_table
+select 
+b.*
+, a.* 
+into #master_table
+from #TU_plus_cashflow_clean3 b 
+left join #acct_union_cleaned_filtered a
+on b.UserId_b = a.UserId
+order by UserId_b
+;
+
+select * from #master_table;
+
+select issuer, count(distinct userId_b) as tot_users from #master_table where acct_type = 'revolving' group by issuer order by tot_users desc;
+select acct_type, count(distinct userId_b) as tot_users from #master_table group by acct_type order by tot_users desc;
+--2268, 1515
+select count(distinct userId_b) from #master_table where issuer IS NOT NULL; --6865
+in ('CAPITAL ONE', 'CREDITONEBNK');
+--6865
+select count(distinct userId_b), count(*) from #master_table;
+
+
