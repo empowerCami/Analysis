@@ -174,6 +174,132 @@ cteAddOnProducts_CV as
 		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[19]' ,  'varchar(1000)') as acct_CL19,
 		X.Y.value('(CVCreditSummary/accountSummaryDetail/creditLimit)[20]' ,  'varchar(1000)') as acct_CL20,
 
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[1]' ,  'varchar(1000)') as currentBalance_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[2]' ,  'varchar(1000)') as currentBalance_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[3]' ,  'varchar(1000)') as currentBalance_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[4]'  ,  'varchar(1000)') as currentBalance_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[5]' ,  'varchar(1000)') as currentBalance_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[6]' ,  'varchar(1000)') as currentBalance_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[7]' ,  'varchar(1000)') as currentBalance_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[8]' ,  'varchar(1000)') as currentBalance_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[9]' ,  'varchar(1000)') as currentBalance_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[10]' ,  'varchar(1000)') as currentBalance_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[11]' ,  'varchar(1000)') as currentBalance_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[12]' ,  'varchar(1000)') as currentBalance_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[13]' ,  'varchar(1000)') as currentBalance_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[14]' ,  'varchar(1000)') as currentBalance_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[15]' ,  'varchar(1000)') as currentBalance_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[16]' ,  'varchar(1000)') as currentBalance_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[17]' ,  'varchar(1000)') as currentBalance_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[18]' ,  'varchar(1000)') as currentBalance_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[19]' ,  'varchar(1000)') as currentBalance_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/currentBalance)[20]' ,  'varchar(1000)') as currentBalance_20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[1]' ,  'varchar(1000)') as pastDue_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[2]' ,  'varchar(1000)') as pastDue_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[3]' ,  'varchar(1000)') as pastDue_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[4]'  ,  'varchar(1000)') as pastDue_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[5]' ,  'varchar(1000)') as pastDue_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[6]' ,  'varchar(1000)') as pastDue_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[7]' ,  'varchar(1000)') as pastDue_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[8]' ,  'varchar(1000)') as pastDue_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[9]' ,  'varchar(1000)') as pastDue_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[10]' ,  'varchar(1000)') as pastDue_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[11]' ,  'varchar(1000)') as pastDue_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[12]' ,  'varchar(1000)') as pastDue_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[13]' ,  'varchar(1000)') as pastDue_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[14]' ,  'varchar(1000)') as pastDue_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[15]' ,  'varchar(1000)') as pastDue_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[16]' ,  'varchar(1000)') as pastDue_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[17]' ,  'varchar(1000)') as pastDue_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[18]' ,  'varchar(1000)') as pastDue_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[19]' ,  'varchar(1000)') as pastDue_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/pastDue)[20]' ,  'varchar(1000)') as pastDue_20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[1]' ,  'varchar(1000)') as highCredit_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[2]' ,  'varchar(1000)') as highCredit_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[3]' ,  'varchar(1000)') as highCredit_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[4]'  ,  'varchar(1000)') as highCredit_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[5]' ,  'varchar(1000)') as highCredit_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[6]' ,  'varchar(1000)') as highCredit_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[7]' ,  'varchar(1000)') as highCredit_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[8]' ,  'varchar(1000)') as highCredit_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[9]' ,  'varchar(1000)') as highCredit_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[10]' ,  'varchar(1000)') as highCredit_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[11]' ,  'varchar(1000)') as highCredit_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[12]' ,  'varchar(1000)') as highCredit_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[13]' ,  'varchar(1000)') as highCredit_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[14]' ,  'varchar(1000)') as highCredit_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[15]' ,  'varchar(1000)') as highCredit_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[16]' ,  'varchar(1000)') as highCredit_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[17]' ,  'varchar(1000)') as highCredit_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[18]' ,  'varchar(1000)') as highCredit_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[19]' ,  'varchar(1000)') as highCredit_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/highCredit)[20]' ,  'varchar(1000)') as highCredit_20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[1]' ,  'varchar(1000)') as MonthlyPayment_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[2]' ,  'varchar(1000)') as MonthlyPayment_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[3]' ,  'varchar(1000)') as MonthlyPayment_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[4]'  ,  'varchar(1000)') as MonthlyPayment_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[5]' ,  'varchar(1000)') as MonthlyPayment_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[6]' ,  'varchar(1000)') as MonthlyPayment_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[7]' ,  'varchar(1000)') as MonthlyPayment_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[8]' ,  'varchar(1000)') as MonthlyPayment_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[9]' ,  'varchar(1000)') as MonthlyPayment_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[10]' ,  'varchar(1000)') as MonthlyPayment_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[11]' ,  'varchar(1000)') as MonthlyPayment_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[12]' ,  'varchar(1000)') as MonthlyPayment_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[13]' ,  'varchar(1000)') as MonthlyPayment_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[14]' ,  'varchar(1000)') as MonthlyPayment_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[15]' ,  'varchar(1000)') as MonthlyPayment_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[16]' ,  'varchar(1000)') as MonthlyPayment_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[17]' ,  'varchar(1000)') as MonthlyPayment_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[18]' ,  'varchar(1000)') as MonthlyPayment_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[19]' ,  'varchar(1000)') as MonthlyPayment_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/scheduledMonthlyPayment)[20]' ,  'varchar(1000)') as MonthlyPayment_20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[1]' ,  'varchar(1000)') as PaymentCount_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[2]' ,  'varchar(1000)') as PaymentCount_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[3]' ,  'varchar(1000)') as PaymentCount_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[4]'  ,  'varchar(1000)') as PaymentCount_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[5]' ,  'varchar(1000)') as PaymentCount_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[6]' ,  'varchar(1000)') as PaymentCount_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[7]' ,  'varchar(1000)') as PaymentCount_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[8]' ,  'varchar(1000)') as PaymentCount_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[9]' ,  'varchar(1000)') as PaymentCount_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[10]' ,  'varchar(1000)') as PaymentCount_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[11]' ,  'varchar(1000)') as PaymentCount_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[12]' ,  'varchar(1000)') as PaymentCount_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[13]' ,  'varchar(1000)') as PaymentCount_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[14]' ,  'varchar(1000)') as PaymentCount_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[15]' ,  'varchar(1000)') as PaymentCount_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[16]' ,  'varchar(1000)') as PaymentCount_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[17]' ,  'varchar(1000)') as PaymentCount_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[18]' ,  'varchar(1000)') as PaymentCount_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[19]' ,  'varchar(1000)') as PaymentCount_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/terms/paymentScheduleMonthCount)[20]' ,  'varchar(1000)') as PaymentCount_20,
+
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[1]' ,  'varchar(1000)') as EstAutoAPR_1,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[2]' ,  'varchar(1000)') as EstAutoAPR_2,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[3]' ,  'varchar(1000)') as EstAutoAPR_3,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[4]'  ,  'varchar(1000)') as EstAutoAPR_4,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[5]' ,  'varchar(1000)') as EstAutoAPR_5,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[6]' ,  'varchar(1000)') as EstAutoAPR_6,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[7]' ,  'varchar(1000)') as EstAutoAPR_7,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[8]' ,  'varchar(1000)') as EstAutoAPR_8,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[9]' ,  'varchar(1000)') as EstAutoAPR_9,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[10]' ,  'varchar(1000)') as EstAutoAPR_10,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[11]' ,  'varchar(1000)') as EstAutoAPR_11,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[12]' ,  'varchar(1000)') as EstAutoAPR_12,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[13]' ,  'varchar(1000)') as EstAutoAPR_13,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[14]' ,  'varchar(1000)') as EstAutoAPR_14,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[15]' ,  'varchar(1000)') as EstAutoAPR_15,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[16]' ,  'varchar(1000)') as EstAutoAPR_16,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[17]' ,  'varchar(1000)') as EstAutoAPR_17,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[18]' ,  'varchar(1000)') as EstAutoAPR_18,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[19]' ,  'varchar(1000)') as EstAutoAPR_19,
+		X.Y.value('(CVCreditSummary/accountSummaryDetail/estimatedAutoAPR)[20]' ,  'varchar(1000)') as EstAutoAPR_20,
+
         X.Y.value('(CVCreditSummary/recordCounts/openTradeCount)[1]', 'varchar(1000)') as Open_Trade_Count_total,
         X.Y.value('(CVCreditSummary/reportingPeriod)[1]', 'varchar(1000)') as reportingPeriod,
         X.Y.value('(CVCreditSummary/totalAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_total,
@@ -222,101 +348,221 @@ aop_CV.portfolio_type1,
 aop_CV.date_Opened1,
 aop_CV.acct_rating1,
 aop_CV.acct_CL1,
+aop_CV.currentBalance_1,
+aop_CV.PastDue_1,
+aop_CV.highCredit_1,
+aop_CV.MonthlyPayment_1, 
+aop_CV.PaymentCount_1, 
+aop_CV.EstAutoAPR_1,
 aop_CV.subscriber_name2,
 aop_CV.portfolio_type2,
 aop_CV.date_Opened2,
 aop_CV.acct_rating2,
 aop_CV.acct_CL2,
+aop_CV.currentBalance_2,
+aop_CV.PastDue_2,
+aop_CV.highCredit_2,
+aop_CV.MonthlyPayment_2, 
+aop_CV.PaymentCount_2, 
+aop_CV.EstAutoAPR_2,
 aop_CV.subscriber_name3,
 aop_CV.portfolio_type3,
 aop_CV.date_Opened3,
 aop_CV.acct_rating3,
 aop_CV.acct_CL3,
+aop_CV.currentBalance_3,
+aop_CV.PastDue_3,
+aop_CV.highCredit_3,
+aop_CV.MonthlyPayment_3, 
+aop_CV.PaymentCount_3, 
+aop_CV.EstAutoAPR_3,
 aop_CV.subscriber_name4,
 aop_CV.portfolio_type4,
 aop_CV.date_Opened4,
 aop_CV.acct_rating4,
 aop_CV.acct_CL4,
+aop_CV.currentBalance_4,
+aop_CV.PastDue_4,
+aop_CV.highCredit_4,
+aop_CV.MonthlyPayment_4, 
+aop_CV.PaymentCount_4, 
+aop_CV.EstAutoAPR_4,
 aop_CV.subscriber_name5,
 aop_CV.portfolio_type5,
 aop_CV.date_Opened5,
 aop_CV.acct_rating5,
 aop_CV.acct_CL5,
+aop_CV.currentBalance_5,
+aop_CV.PastDue_5,
+aop_CV.highCredit_5,
+aop_CV.MonthlyPayment_5, 
+aop_CV.PaymentCount_5, 
+aop_CV.EstAutoAPR_5,
 aop_CV.subscriber_name6,
 aop_CV.portfolio_type6,
 aop_CV.date_Opened6,
 aop_CV.acct_rating6,
 aop_CV.acct_CL6,
+aop_CV.currentBalance_6,
+aop_CV.PastDue_6,
+aop_CV.highCredit_6,
+aop_CV.MonthlyPayment_6, 
+aop_CV.PaymentCount_6, 
+aop_CV.EstAutoAPR_6,
 aop_CV.subscriber_name7,
 aop_CV.portfolio_type7,
 aop_CV.date_Opened7,
 aop_CV.acct_rating7,
 aop_CV.acct_CL7,
+aop_CV.currentBalance_7,
+aop_CV.PastDue_7,
+aop_CV.highCredit_7,
+aop_CV.MonthlyPayment_7, 
+aop_CV.PaymentCount_7, 
+aop_CV.EstAutoAPR_7,
 aop_CV.subscriber_name8,
 aop_CV.portfolio_type8,
 aop_CV.date_Opened8,
 aop_CV.acct_rating8,
 aop_CV.acct_CL8,
+aop_CV.currentBalance_8,
+aop_CV.PastDue_8,
+aop_CV.highCredit_8,
+aop_CV.MonthlyPayment_8, 
+aop_CV.PaymentCount_8, 
+aop_CV.EstAutoAPR_8,
 aop_CV.subscriber_name9,
 aop_CV.portfolio_type9,
 aop_CV.date_Opened9,
 aop_CV.acct_rating9,
 aop_CV.acct_CL9,
+aop_CV.currentBalance_9,
+aop_CV.PastDue_9,
+aop_CV.highCredit_9,
+aop_CV.MonthlyPayment_9, 
+aop_CV.PaymentCount_9, 
+aop_CV.EstAutoAPR_9,
 aop_CV.subscriber_name10,
 aop_CV.portfolio_type10,
 aop_CV.date_Opened10,
 aop_CV.acct_rating10,
 aop_CV.acct_CL10,
+aop_CV.currentBalance_10,
+aop_CV.PastDue_10,
+aop_CV.highCredit_10,
+aop_CV.MonthlyPayment_10, 
+aop_CV.PaymentCount_10, 
+aop_CV.EstAutoAPR_10,
 aop_CV.subscriber_name11,
 aop_CV.portfolio_type11,
 aop_CV.date_Opened11,
 aop_CV.acct_rating11,
 aop_CV.acct_CL11,
+aop_CV.currentBalance_11,
+aop_CV.PastDue_11,
+aop_CV.highCredit_11,
+aop_CV.MonthlyPayment_11, 
+aop_CV.PaymentCount_11, 
+aop_CV.EstAutoAPR_11,
 aop_CV.subscriber_name12,
 aop_CV.portfolio_type12,
 aop_CV.date_Opened12,
 aop_CV.acct_rating12,
 aop_CV.acct_CL12,
+aop_CV.currentBalance_12,
+aop_CV.PastDue_12,
+aop_CV.highCredit_12,
+aop_CV.MonthlyPayment_12, 
+aop_CV.PaymentCount_12, 
+aop_CV.EstAutoAPR_12,
 aop_CV.subscriber_name13,
 aop_CV.portfolio_type13,
 aop_CV.date_Opened13,
 aop_CV.acct_rating13,
 aop_CV.acct_CL13,
+aop_CV.currentBalance_13,
+aop_CV.PastDue_13,
+aop_CV.highCredit_13,
+aop_CV.MonthlyPayment_13, 
+aop_CV.PaymentCount_13, 
+aop_CV.EstAutoAPR_13,
 aop_CV.subscriber_name14,
 aop_CV.portfolio_type14,
 aop_CV.date_Opened14,
 aop_CV.acct_rating14,
 aop_CV.acct_CL14,
+aop_CV.currentBalance_14,
+aop_CV.PastDue_14,
+aop_CV.highCredit_14,
+aop_CV.MonthlyPayment_14, 
+aop_CV.PaymentCount_14, 
+aop_CV.EstAutoAPR_14,
 aop_CV.subscriber_name15,
 aop_CV.portfolio_type15,
 aop_CV.date_Opened15,
 aop_CV.acct_rating15,
 aop_CV.acct_CL15,
+aop_CV.currentBalance_15,
+aop_CV.PastDue_15,
+aop_CV.highCredit_15,
+aop_CV.MonthlyPayment_15, 
+aop_CV.PaymentCount_15, 
+aop_CV.EstAutoAPR_15,
 aop_CV.subscriber_name16,
 aop_CV.portfolio_type16,
 aop_CV.date_Opened16,
 aop_CV.acct_rating16,
 aop_CV.acct_CL16,
+aop_CV.currentBalance_16,
+aop_CV.PastDue_16,
+aop_CV.highCredit_16,
+aop_CV.MonthlyPayment_16, 
+aop_CV.PaymentCount_16, 
+aop_CV.EstAutoAPR_16,
 aop_CV.subscriber_name17,
 aop_CV.portfolio_type17,
 aop_CV.date_Opened17,
 aop_CV.acct_rating17,
 aop_CV.acct_CL17,
+aop_CV.currentBalance_17,
+aop_CV.PastDue_17,
+aop_CV.highCredit_17,
+aop_CV.MonthlyPayment_17, 
+aop_CV.PaymentCount_17, 
+aop_CV.EstAutoAPR_17,
 aop_CV.subscriber_name18,
 aop_CV.portfolio_type18,
 aop_CV.date_Opened18,
 aop_CV.acct_rating18,
 aop_CV.acct_CL18,
+aop_CV.currentBalance_18,
+aop_CV.PastDue_18,
+aop_CV.highCredit_18,
+aop_CV.MonthlyPayment_18, 
+aop_CV.PaymentCount_18, 
+aop_CV.EstAutoAPR_18,
 aop_CV.subscriber_name19,
 aop_CV.portfolio_type19,
 aop_CV.date_Opened19,
 aop_CV.acct_rating19,
 aop_CV.acct_CL19,
+aop_CV.currentBalance_19,
+aop_CV.PastDue_19,
+aop_CV.highCredit_19,
+aop_CV.MonthlyPayment_19, 
+aop_CV.PaymentCount_19, 
+aop_CV.EstAutoAPR_19,
 aop_CV.subscriber_name20,
 aop_CV.portfolio_type20,
 aop_CV.date_Opened20,
 aop_CV.acct_rating20,
 aop_CV.acct_CL20,
+aop_CV.currentBalance_20,
+aop_CV.PastDue_20,
+aop_CV.highCredit_20,
+aop_CV.MonthlyPayment_20, 
+aop_CV.PaymentCount_20, 
+aop_CV.EstAutoAPR_20,
 
 aop_CV.reportingPeriod,
 aop_CV.creditLimit_total,
@@ -350,92 +596,213 @@ on hit.UserCreditReportId = aop_CV.UserCreditReportId
 and aop_CV.Code = '07226'
 ;
 
-select * from #Thrive_TU_attr;
+--select * from #Thrive_TU_attr;
 
 -- UNION ALL ACCT INFO TO MAKE ONE ROW PER TRADELINE
 
 drop table if exists #acct_union
 select 
 distinct userId ,  subscriber_name1 as issuer , date_opened1 as date_opened , portfolio_type1 as acct_type, acct_CL1 as acct_credit_line, acct_rating1 as acct_status
+, currentBalance_1 as current_balance
+, PastDue_1 as pastDue_amt
+, highCredit_1 as highestAmt_Owed
+, MonthlyPayment_1 as monthly_payment
+, PaymentCount_1 as tot_payment_count
+, EstAutoAPR_1 as auto_apr
 into #acct_union
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name2 as issuer , date_opened2 as date_opened , portfolio_type2 as acct_type, acct_CL2 as acct_credit_line, acct_rating2 as acct_status
+, currentBalance_2 as current_balance
+, PastDue_2 as pastDue_amt
+, highCredit_2 as highestAmt_Owed
+, MonthlyPayment_2 as monthly_payment
+, PaymentCount_2 as tot_payment_count
+, EstAutoAPR_2 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name3 as issuer , date_opened3 as date_opened , portfolio_type3 as acct_type, acct_CL3 as acct_credit_line, acct_rating3 as acct_status
+, currentBalance_3 as current_balance
+, PastDue_3 as pastDue_amt
+, highCredit_3 as highestAmt_Owed
+, MonthlyPayment_3 as monthly_payment
+, PaymentCount_3 as tot_payment_count
+, EstAutoAPR_3 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name4 as issuer , date_opened4 as date_opened , portfolio_type4 as acct_type, acct_CL4 as acct_credit_line, acct_rating4 as acct_status
+, currentBalance_4 as current_balance
+, PastDue_4 as pastDue_amt
+, highCredit_4 as highestAmt_Owed
+, MonthlyPayment_4 as monthly_payment
+, PaymentCount_4 as tot_payment_count
+, EstAutoAPR_4 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name5 as issuer , date_opened5 as date_opened , portfolio_type5 as acct_type, acct_CL5 as acct_credit_line, acct_rating5 as acct_status
+, currentBalance_5 as current_balance
+, PastDue_5 as pastDue_amt
+, highCredit_5 as highestAmt_Owed
+, MonthlyPayment_5 as monthly_payment
+, PaymentCount_5 as tot_payment_count
+, EstAutoAPR_5 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name6 as issuer , date_opened6 as date_opened , portfolio_type6 as acct_type, acct_CL6 as acct_credit_line, acct_rating6 as acct_status
+, currentBalance_6 as current_balance
+, PastDue_6 as pastDue_amt
+, highCredit_6 as highestAmt_Owed
+, MonthlyPayment_6 as monthly_payment
+, PaymentCount_6 as tot_payment_count
+, EstAutoAPR_6 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId, subscriber_name7 as issuer , date_opened7 as date_opened , portfolio_type7 as acct_type, acct_CL7 as acct_credit_line, acct_rating7 as acct_status
+, currentBalance_7 as current_balance
+, PastDue_7 as pastDue_amt
+, highCredit_7 as highestAmt_Owed
+, MonthlyPayment_7 as monthly_payment
+, PaymentCount_7 as tot_payment_count
+, EstAutoAPR_7 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name8 as issuer , date_opened8 as date_opened , portfolio_type8 as acct_type, acct_CL8 as acct_credit_line, acct_rating8 as acct_status
+, currentBalance_8 as current_balance
+, PastDue_8 as pastDue_amt
+, highCredit_8 as highestAmt_Owed
+, MonthlyPayment_8 as monthly_payment
+, PaymentCount_8 as tot_payment_count
+, EstAutoAPR_8 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name9 as issuer , date_opened9 as date_opened , portfolio_type9 as acct_type, acct_CL9 as acct_credit_line, acct_rating9 as acct_status
+, currentBalance_9 as current_balance
+, PastDue_9 as pastDue_amt
+, highCredit_9 as highestAmt_Owed
+, MonthlyPayment_9 as monthly_payment
+, PaymentCount_9 as tot_payment_count
+, EstAutoAPR_9 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name10 as issuer , date_opened10 as date_opened , portfolio_type10 as acct_type, acct_CL10 as acct_credit_line, acct_rating10 as acct_status
+, currentBalance_10 as current_balance
+, PastDue_10 as pastDue_amt
+, highCredit_10 as highestAmt_Owed
+, MonthlyPayment_10 as monthly_payment
+, PaymentCount_10 as tot_payment_count
+, EstAutoAPR_10 as auto_apr
 from #Thrive_TU_attr
 select 
 distinct userId ,  subscriber_name11 as issuer , date_opened11 as date_opened , portfolio_type11 as acct_type, acct_CL11 as acct_credit_line, acct_rating11 as acct_status
+, currentBalance_11 as current_balance
+, PastDue_11 as pastDue_amt
+, highCredit_11 as highestAmt_Owed
+, MonthlyPayment_11 as monthly_payment
+, PaymentCount_11 as tot_payment_count
+, EstAutoAPR_11 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name12 as issuer , date_opened12 as date_opened , portfolio_type12 as acct_type, acct_CL12 as acct_credit_line, acct_rating12 as acct_status
+, currentBalance_12 as current_balance
+, PastDue_12 as pastDue_amt
+, highCredit_12 as highestAmt_Owed
+, MonthlyPayment_12 as monthly_payment
+, PaymentCount_12 as tot_payment_count
+, EstAutoAPR_12 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name13 as issuer , date_opened13 as date_opened , portfolio_type13 as acct_type, acct_CL13 as acct_credit_line, acct_rating13 as acct_status
+, currentBalance_13 as current_balance
+, PastDue_13 as pastDue_amt
+, highCredit_13 as highestAmt_Owed
+, MonthlyPayment_13 as monthly_payment
+, PaymentCount_13 as tot_payment_count
+, EstAutoAPR_13 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name14 as issuer , date_opened14 as date_opened , portfolio_type14 as acct_type, acct_CL14 as acct_credit_line, acct_rating14 as acct_status
+, currentBalance_14 as current_balance
+, PastDue_14 as pastDue_amt
+, highCredit_14 as highestAmt_Owed
+, MonthlyPayment_14 as monthly_payment
+, PaymentCount_14 as tot_payment_count
+, EstAutoAPR_14 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name15 as issuer , date_opened15 as date_opened , portfolio_type15 as acct_type, acct_CL15 as acct_credit_line, acct_rating15 as acct_status
+, currentBalance_15 as current_balance
+, PastDue_15 as pastDue_amt
+, highCredit_15 as highestAmt_Owed
+, MonthlyPayment_15 as monthly_payment
+, PaymentCount_15 as tot_payment_count
+, EstAutoAPR_15 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name16 as issuer , date_opened16 as date_opened , portfolio_type16 as acct_type, acct_CL16 as acct_credit_line, acct_rating16 as acct_status
+, currentBalance_16 as current_balance
+, PastDue_16 as pastDue_amt
+, highCredit_16 as highestAmt_Owed
+, MonthlyPayment_16 as monthly_payment
+, PaymentCount_16 as tot_payment_count
+, EstAutoAPR_16 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name17 as issuer , date_opened17 as date_opened , portfolio_type17 as acct_type, acct_CL17 as acct_credit_line, acct_rating17 as acct_status
+, currentBalance_17 as current_balance
+, PastDue_17 as pastDue_amt
+, highCredit_17 as highestAmt_Owed
+, MonthlyPayment_17 as monthly_payment
+, PaymentCount_17 as tot_payment_count
+, EstAutoAPR_17 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name18 as issuer , date_opened18 as date_opened , portfolio_type18 as acct_type, acct_CL18 as acct_credit_line, acct_rating18 as acct_status
+, currentBalance_18 as current_balance
+, PastDue_18 as pastDue_amt
+, highCredit_18 as highestAmt_Owed
+, MonthlyPayment_18 as monthly_payment
+, PaymentCount_18 as tot_payment_count
+, EstAutoAPR_18 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId, subscriber_name19 as issuer , date_opened19 as date_opened , portfolio_type19 as acct_type, acct_CL19 as acct_credit_line, acct_rating19 as acct_status
+, currentBalance_19 as current_balance
+, PastDue_19 as pastDue_amt
+, highCredit_19 as highestAmt_Owed
+, MonthlyPayment_19 as monthly_payment
+, PaymentCount_19 as tot_payment_count
+, EstAutoAPR_19 as auto_apr
 from #Thrive_TU_attr
 UNION ALL
 select
 distinct userId,  subscriber_name20 as issuer , date_opened20 as date_opened , portfolio_type20 as acct_type, acct_CL20 as acct_credit_line, acct_rating20 as acct_status
+, currentBalance_20 as current_balance
+, PastDue_20 as pastDue_amt
+, highCredit_20 as highestAmt_Owed
+, MonthlyPayment_20 as monthly_payment
+, PaymentCount_20 as tot_payment_count
+, EstAutoAPR_20 as auto_apr
 from #Thrive_TU_attr
 ;
 
+--select * from #acct_union_cleaned;
 
 --- drop rows where tradeline is null (meaning user didn't have that number of tradelines)
 drop table if exists #acct_union_cleaned
@@ -446,13 +813,17 @@ userId
 , acct_type 
 , acct_status
 , REPLACE(LTRIM(REPLACE(acct_credit_line, '0', ' ')),' ', '0') as acct_credit_line 
+, REPLACE(LTRIM(REPLACE(current_balance, '0', ' ')),' ', '0') as current_balance
+, REPLACE(LTRIM(REPLACE(pastDue_amt, '0', ' ')),' ', '0') as pastDue_amt 
+, REPLACE(LTRIM(REPLACE(highestAmt_Owed, '0', ' ')),' ', '0') as highestAmt_Owed 
+, REPLACE(LTRIM(REPLACE(monthly_payment, '0', ' ')),' ', '0') as monthly_payment 
+, REPLACE(LTRIM(REPLACE(tot_payment_count, '0', ' ')),' ', '0') as tot_payment_count
+, auto_apr 
 , row_number() over(partition by UserId order by date_opened desc) as row_num
 into #acct_union_cleaned
 from #acct_union 
 where issuer is not null
 ;
-
-
 
 drop table if exists #acct_union_cleaned2
 SELECT 
@@ -463,14 +834,19 @@ distinct userId
 , acct_status
 , row_num
 , cast(acct_credit_line as int) as acct_credit_line
+, cast(current_balance as int) as current_balance 
+, cast(highestAmt_Owed as int) as highestAmt_Owed 
+, cast(monthly_payment as int) as monthly_payment 
+, cast(tot_payment_count as int) as tot_payment_count
 into #acct_union_cleaned2
 from #acct_union_cleaned
 ;
+
 --select * from #acct_union_cleaned2;
 
--- select count(distinct userID) from #acct_union_cleaned; --6862
+-- select count(distinct userID) from #acct_union_cleaned; --6862 --6900
 
--- select count(distinct userID) from #Thrive_TU_attr; -- 7369
+-- select count(distinct userID) from #Thrive_TU_attr; -- 7369 -- 7407
 
 -- select * from #acct_union_cleaned order by userId;
 
@@ -491,12 +867,20 @@ when acct_credit_line between 300 and 499 then 'e. [$300-$500)'
 when acct_credit_line between 500 and 999 then 'f. [$500-$1,000)'
 when acct_credit_line >= 1000 then 'g. $1,000+'
 end as CL_category
+, current_balance
+, floor(current_balance/50)*50 as current_balace_cat
+, highestAmt_Owed
+, floor(highestAmt_Owed/50)*50 as highestAmt_Owed_cat
+, monthly_payment
+, floor(monthly_payment/25)*25 as monthly_payment_cat 
+, tot_payment_count 
+, floor(tot_payment_count/3)*3 as tot_payment_count_cat 
 , row_num 
-
 into #acct_union_cleaned_filtered
 from #acct_union_cleaned2
 --  
 ;
+--select * from #acct_union_cleaned_filtered;
 
 -- ANALYSIS QUERIES BELOW
 -- SELECT 
@@ -695,14 +1079,35 @@ on b.UserId_b = a.UserId
 order by UserId_b
 ;
 
-select * from #master_table;
-
-select issuer, count(distinct userId_b) as tot_users from #master_table where acct_type = 'revolving' group by issuer order by tot_users desc;
-select acct_type, count(distinct userId_b) as tot_users from #master_table group by acct_type order by tot_users desc;
---2268, 1515
-select count(distinct userId_b) from #master_table where issuer IS NOT NULL; --6865
-in ('CAPITAL ONE', 'CREDITONEBNK');
---6865
-select count(distinct userId_b), count(*) from #master_table;
-
+drop table if exists #installment_loan_seep_dive
+SELECT 
+distinct userId_b 
+, created_year_month 
+, fico_cat 
+, open_trade_count_total_clean 
+, openRevolvingTradeCount_clean 
+, openInstallmentTradeCount_clean 
+, negativeTradeCount_clean 
+, collectionCount_clean 
+, creditLimit_total_clean 
+, days_since_last_DQ_clean 
+, mostRecentDQstatus 
+, paycheckModelUsed 
+, model_cat_floor 
+, paycheck_cat 
+, issuer 
+, open_yr_month 
+, acct_type 
+, acct_status 
+, row_num 
+, monthly_payment_cat 
+, tot_payment_count_cat
+, current_balance 
+, highestAmt_owed
+, floor(current_balance/500)*500 as current_balance_500cat 
+, floor(highestAmt_Owed/500)*500 as highestAmt_Owed_500cat 
+into #installment_loan_seep_dive
+from #master_table 
+--where acct_type = 'installment'
+order by userId_b, row_num
 
