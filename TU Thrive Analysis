@@ -833,6 +833,8 @@ distinct userId
 , acct_type 
 , acct_status
 , row_num
+, auto_apr
+, cast(pastdue_amt as int) as past_due
 , cast(acct_credit_line as int) as acct_credit_line
 , cast(current_balance as int) as current_balance 
 , cast(highestAmt_Owed as int) as highestAmt_Owed 
@@ -848,7 +850,7 @@ from #acct_union_cleaned
 
 -- select count(distinct userID) from #Thrive_TU_attr; -- 7369 -- 7407
 
--- select * from #acct_union_cleaned order by userId;
+--select * from #acct_union_cleaned order by userId;
 
 ---CREATING SEGMENTATION FOR ANALYSIS
 drop table if exists #acct_union_cleaned_filtered
@@ -867,6 +869,7 @@ when acct_credit_line between 300 and 499 then 'e. [$300-$500)'
 when acct_credit_line between 500 and 999 then 'f. [$500-$1,000)'
 when acct_credit_line >= 1000 then 'g. $1,000+'
 end as CL_category
+, past_due
 , current_balance
 , floor(current_balance/50)*50 as current_balace_cat
 , highestAmt_Owed
@@ -875,6 +878,7 @@ end as CL_category
 , floor(monthly_payment/25)*25 as monthly_payment_cat 
 , tot_payment_count 
 , floor(tot_payment_count/3)*3 as tot_payment_count_cat 
+, auto_apr
 , row_num 
 into #acct_union_cleaned_filtered
 from #acct_union_cleaned2
@@ -1079,7 +1083,12 @@ on b.UserId_b = a.UserId
 order by UserId_b
 ;
 
-drop table if exists #installment_loan_seep_dive
+-- select * from #master_table ;
+
+
+-- select top 100 * from #master_table;
+
+drop table if exists #installment_loan_deep_dive
 SELECT 
 distinct userId_b 
 , created_year_month 
@@ -1100,14 +1109,29 @@ distinct userId_b
 , acct_type 
 , acct_status 
 , row_num 
+, acct_credit_line
 , monthly_payment_cat 
 , tot_payment_count_cat
 , current_balance 
 , highestAmt_owed
+, monthly_payment 
+, tot_payment_count
+, auto_apr
+, past_due
+, case when openInstallmentTradeCount_clean > 0 then 1 else 0 end as IL_check 
+, case when openRevolvingTradeCount_clean > 0 then 1 else 0 end as Revolve_check
 , floor(current_balance/500)*500 as current_balance_500cat 
 , floor(highestAmt_Owed/500)*500 as highestAmt_Owed_500cat 
-into #installment_loan_seep_dive
+, case when acct_type = 'installment' and issuer in ('KEISER UNIV', 'EDFED CU', 'USDOE/GLELSI', 'DEPTEDNELNET', 'DPT ED/NAVI', 'DPT ED/AIDV', 'FEDLOAN', 'NAVIENT', 'GA STND FIN', 'MOHELA/DOFED', 'EDFINANCIAL', 'AES/NCT', 'SALLIE MAE', 'NELNET LNS' ) OR issuer like '%DPT ED%' or issuer like '%AES%' or issuer like '%EDUCATION%' then 'D. student issuer'
+when acct_type = 'installment' and issuer in ('SAFCO', 'CARVANT FNCL', 'CARFINSVCS', 'AMERCYCLEFIN', 'NISSAN INF LT', 'NISSN INF LT', 'AM HONDA FIN', 'VW CREDIT', 'VEHICLE SOLU', 'SETF/WOFC', 'TX DEALER SO', 'AMERICAS CAR', 'CAP ONE AUTO', 'BRIDGECREST', 'EXETER FIN', 'CRESCENT B&T', 'TOYOTA MTR', 'CHRYSLERCAP', 'WFDS', 'HARLEY DAVID', 'GM FINANCIAL', 'GLBLNDSVCS', 'REGIONALAC', 'FRD MOTOT CR', 'FOURSIGHT', 'BMW FIN SVC', 'NICHOLAS FIN', 'REGIONAL ACC', 'AMER HONDA', 'KIA FIN AM', 'KIA MTR FIN', 'MOTOLEASE' ) or issuer like '%AUTO%' OR issuer like '%MOTOR%' then 'C. auto issuer'
+when acct_type = 'installment' and highestAmt_owed >= 10000 then 'B. (10k+) IL'
+when acct_type = 'installment' and highestAmt_owed < 10000 then 'A. < 10K IL'
+else 'Other'
+end as IL_loan_type
+
+into #installment_loan_deep_dive
 from #master_table 
 --where acct_type = 'installment'
 order by userId_b, row_num
-
+;
+--7431
