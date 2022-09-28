@@ -1,0 +1,43 @@
+-- Needed fields: 
+-- FULL_NAME 
+-- SOCIAL_SECURITY_NUMBER - ask Jonathan/Justin
+-- BIRTH_DATE
+-- ZIP_CODE
+-- UNPARSED_ADDR_1 - ? (just street or street/city/state/zip)
+-- CITY_NAME
+-- STATE
+-- FILLER - ?
+-- TUSEQEUNCENUMBER - ?
+-- ADDR_DISCREPANCY_FLG - ?
+
+drop table if exists #credit_score_pop_starter
+select 
+a.UserId
+, a.firstName
+, a.LastName
+, concat(a.FirstName, ' ', a.LastName) as full_Name
+, a.DateOfBirth 
+, CONVERT(VARCHAR(30), a.DateOfBirth,23) as dob
+, concat(addressLine1, ' ', addressLine2) as full_street_address --should "unparsed address" include zip/city/state?
+, b.Zip as zip_code
+, b.City 
+, b.State
+into #credit_score_pop_starter
+from [User] a 
+left join [UserAddresses] b
+on a.UserId = b.UserId
+where 1=1
+and a.userId in (select distinct userId from [Loans]) --Thrive check
+;
+
+--there are address dupes causing non-distinct rows 
+select 
+distinct UserId 
+, full_name
+, dob 
+, full_street_address 
+, zip_code 
+, city 
+, state 
+from #credit_score_pop_starter
+;
