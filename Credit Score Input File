@@ -10,6 +10,19 @@
 -- TUSEQEUNCENUMBER - ?
 -- ADDR_DISCREPANCY_FLG - ?
 
+
+-- Needed fields: 
+-- FULL_NAME - concat of first and last
+-- SOCIAL_SECURITY_NUMBER - ask Jonathan/Justin
+-- BIRTH_DATE
+-- ZIP_CODE
+-- UNPARSED_ADDR_1 - concat of line 1 and line 2
+-- CITY_NAME
+-- STATE
+-- FILLER - ?
+-- TUSEQEUNCENUMBER - ?
+-- ADDR_DISCREPANCY_FLG - should always be false
+
 drop table if exists #credit_score_pop_starter
 select 
 a.UserId
@@ -18,26 +31,40 @@ a.UserId
 , concat(a.FirstName, ' ', a.LastName) as full_Name
 , a.DateOfBirth 
 , CONVERT(VARCHAR(30), a.DateOfBirth,23) as dob
+, b.UserAddressId 
 , concat(addressLine1, ' ', addressLine2) as full_street_address --should "unparsed address" include zip/city/state?
 , b.Zip as zip_code
 , b.City 
 , b.State
+, 'F' as addressdiscrepancyflag
 into #credit_score_pop_starter
 from [User] a 
 left join [UserAddresses] b
 on a.UserId = b.UserId
 where 1=1
-and a.userId in (select distinct userId from [Loans]) --Thrive check
+and a.userId in (select distinct userId from [Loans] where Status in (1,2,5,6)) --Thrive check, limiting to approved/open
 ;
 
---there are address dupes causing non-distinct rows 
+select * from #credit_score_pop_starter ;
+
+drop table if exists #dedup_address_starter
 select 
-distinct UserId 
-, full_name
-, dob 
-, full_street_address 
-, zip_code 
-, city 
-, state 
-from #credit_score_pop_starter
+*
+, RANK() OVER(PARTITION BY UserId ORDER BY UserAddressId DESC) AS recent_address_id 
+into #dedup_address_starter
+from #credit_score_pop_starter 
+;
+
+
+select 
+distinct a.UserId 
+, a.full_name
+, a.dob 
+, a.full_street_address 
+, a.zip_code 
+, a.city 
+, a.state 
+, a.addressdiscrepancyflag
+from #dedup_address_starter a
+where a.recent_address_id = 1
 ;
