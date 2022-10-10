@@ -1,0 +1,301 @@
+---Transunion XML Extract Script
+
+drop table if exists #UserCreditReports_xml;
+
+SELECT 
+		UserCreditReportId,
+		UserId,
+        CreatedAt,
+        FIRST_VALUE(CreatedAt) OVER(PARTITION BY UserId  ORDER BY CreatedAt DESC) AS CreatedAt_last,
+		CAST(
+			REPLACE(
+				REPLACE([Data], '<?xml version="1.0" encoding="UTF-8"?>', ''),
+				N'<creditBureau xmlns="http://www.transunion.com/namespace" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.transunion.com/namespace">',
+				N'<creditBureau>')
+			as xml) as XmlData
+into #UserCreditReports_xml
+FROM dbo.UserCreditReports
+where UserCreditReportId > 15 -- weed out test accounts
+;
+
+drop table if exists #UserCreditReports_xml_deduped
+SELECT
+*
+into #UserCreditReports_xml_deduped
+from #UserCreditReports_xml
+where CreatedAt = CreatedAt_last
+;
+
+
+drop table if exists #Thrive_TU_attr;
+with cteFileHitIndicator as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+        CreatedAt,
+		X.Y.value('(fileHitIndicator)[1]', 'varchar(1000)') as 'fileHitIndicator'
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		OUTER APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/fileSummary') as X(Y)
+), 
+cteAddOnProducts_fico as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+		X.Y.value('(code)[1]', 'varchar(1000)') as 'Code',
+		X.Y.value('(status)[1]', 'varchar(1000)') as 'Status',
+        X.Y.value('(scoreModel/score/results)[1]', 'varchar(1000)') as 'FICO'
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		CROSS APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/addOnProduct') as X(Y)
+),
+cteAddOnProducts_CV as
+(
+	SELECT 
+		UserCreditReportId,
+		UserId,
+        --- this is how you grab what features you need from the data dict
+		X.Y.value('(code)[1]', 'varchar(1000)') as 'Code',
+		X.Y.value('(status)[1]', 'varchar(1000)') as 'Status',
+		
+        X.Y.value('(CVCreditSummary/recordCounts/openTradeCount)[1]', 'varchar(1000)') as Open_Trade_Count_total,
+        X.Y.value('(CVCreditSummary/reportingPeriod)[1]', 'varchar(1000)') as reportingPeriod,
+        X.Y.value('(CVCreditSummary/totalAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_total,
+        X.Y.value('(CVCreditSummary/totalAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_total,
+        X.Y.value('(CVCreditSummary/revolvingAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_revolving,
+        X.Y.value('(CVCreditSummary/revolvingAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_revolving,
+        X.Y.value('(CVCreditSummary/revolvingAmount/mostRecentPayment/amount)[1]', 'varchar(1000)') as mostRecentPaymentAmount_revolving,
+        X.Y.value('(CVCreditSummary/installmentAmount/creditLimit)[1]', 'varchar(1000)') as creditLimit_installment,
+        X.Y.value('(CVCreditSummary/installmentAmount/currentBalance)[1]', 'varchar(1000)') as currentBalance_installment,
+        X.Y.value('(CVCreditSummary/recordCounts/collectionCount)[1]', 'varchar(1000)') as collectionCount,
+        X.Y.value('(CVCreditSummary/recordCounts/totalTradeCount)[1]', 'varchar(1000)') as totalTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/negativeTradeCount)[1]', 'varchar(1000)') as negativeTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/historicalNegativeTradeCount)[1]', 'varchar(1000)') as historicalNegativeTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/revolvingTradeCount)[1]', 'varchar(1000)') as revolvingTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/installmentTradeCount)[1]', 'varchar(1000)') as installmentTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openRevolvingTradeCount)[1]', 'varchar(1000)') as openRevolvingTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openInstallmentTradeCount)[1]', 'varchar(1000)') as openInstallmentTradeCount,
+        X.Y.value('(CVCreditSummary/recordCounts/openMortgageTradeCount)[1]', 'varchar(1000)') as openMortgageTradeCount,
+        X.Y.value('(CVCreditSummary/mostRecentDelinquency/accountRating)[1]', 'varchar(1000)') as mostRecentDQstatus,
+        X.Y.value('(CVCreditSummary/mostRecentDelinquency/date)[1]', 'varchar(1000)') as mostRecentDQdate,
+        X.Y.value('(CVCreditSummary/recordCounts/totalInquiryCount)[1]', 'varchar(1000)') as totalInquiryCount
+	-- FROM cteXml 
+    from #UserCreditReports_xml_deduped as cteXml
+		CROSS APPLY cteXml.XmlData.nodes('/creditBureau/product/subject/subjectRecord/addOnProduct') as X(Y)
+)
+
+-- drop table if exists #Thrive_TU_attr;
+SELECT 
+hit.UserCreditReportId,
+hit.UserId, 
+hit.CreatedAt,
+hit.fileHitIndicator, 
+--aop_fico.Status,
+aop_fico.Code as fico_code,
+aop_fico.FICO,
+aop_CV.code as CV_code,
+aop_CV.Open_Trade_Count_total,
+aop_CV.reportingPeriod,
+aop_CV.creditLimit_total,
+aop_CV.currentBalance_total,
+aop_CV.creditLimit_revolving,
+aop_CV.currentBalance_revolving,
+aop_CV.mostRecentPaymentAmount_revolving,
+aop_CV.creditLimit_installment,
+aop_CV.currentBalance_installment,
+aop_CV.collectionCount,
+aop_CV.totalTradeCount,
+aop_CV.negativeTradeCount,
+aop_CV.revolvingTradeCount,
+aop_CV.installmentTradeCount,
+aop_CV.openRevolvingTradeCount,
+aop_CV.openInstallmentTradeCount,
+aop_CV.historicalNegativeTradeCount,
+aop_CV.openMortgageTradeCount,
+aop_CV.mostRecentDQstatus,
+aop_CV.mostRecentDQdate,
+aop_CV.totalInquiryCount
+-- aop.collectionCount
+
+into #Thrive_TU_attr
+FROM cteFileHitIndicator as hit
+left JOIN cteAddOnProducts_fico as aop_fico
+ON hit.UserCreditReportId = aop_fico.UserCreditReportId
+and aop_fico.Code = '001NN'
+left join cteAddOnProducts_CV as aop_CV
+on hit.UserCreditReportId = aop_CV.UserCreditReportId
+and aop_CV.Code = '07226'
+;
+
+
+drop table if exists #TU_plus_cashflow;
+SELECT
+a.*,
+DateGenerated,
+UserCreditVariableId,
+FIRST_VALUE(DateGenerated) OVER(PARTITION BY a.UserId, CreatedAt ORDER BY DateGenerated DESC) AS DateGenerated_last,
+case when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 1 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 1 then 'BruteForce'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 2 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 2 then 'DeepSearch'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 3 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 3 then 'Tagging'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 4 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 4 then 'VariableIncome'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 5 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 5 then 'SinglePaycheckAtEmpower'
+	when JSON_VALUE (PaycheckArchetype,'$.PaycheckIdentificationMethod') = 7 or JSON_VALUE(PaycheckArchetype,'$.PaycheckModelUsed') = 7 then 'MinimalIncome'
+	else 'None'
+end AS [PaycheckModelUsed], 
+MLModelScore,
+BalanceAverage, AverageMonthlySpend, TotalCash, AverageMonthlyIncome, Paycheck, Income, 
+OutstandingCompetitorBalance, PaycheckAccountCurrentBalance
+into #TU_plus_cashflow
+from #Thrive_TU_attr a 
+left join (select UserId, UserCreditVariableId, DateGenerated, PaycheckArchetype, MLModelScore,
+			BalanceAverage, AverageMonthlySpend, TotalCash, AverageMonthlyIncome, Paycheck, Income, 
+OutstandingCompetitorBalance, PaycheckAccountCurrentBalance
+	from UserCreditVariable with (nolock)
+	where (DateGenerated >= '2021-06-01' and DateGenerated < '2022-02-19' and CreditVariableEdition = 1)
+			or (DateGenerated >= '2022-02-19' and CreditVariableEdition = 2)
+	) b 
+on a.UserId = b.UserId 
+and DateGenerated < CreatedAt
+and DateGenerated > DATEADD(Day,-5,CreatedAt)
+;
+
+--select top 100 * from #TU_plus_cashflow_clean;
+drop table if exists #TU_plus_cashflow_clean;
+SELECT
+a.*
+, cast(FICO as int) as FICO_clean
+INTO #TU_plus_cashflow_clean
+from #TU_plus_cashflow a
+where (DateGenerated = DateGenerated_last or DateGenerated is null);
+
+-- select top 100 * from #TU_plus_cashflow_clean;
+--select count(*), count(distinct UserId) from #TU_plus_cashflow_clean;
+
+drop table if exists #TU_plus_cashflow_clean2;
+SELECT
+distinct userId
+--, CreatedAt
+, substring((cast(CreatedAt as varchar)), 0, 8) as created_year_month --casting date to truncate to Y/M
+, substring((cast(CreatedAt as varchar)), 0, 11) as created_year_month_day --casting date to truncate to Y/M
+, FICO
+, case when FICO_clean < 500 then '< 500'
+when FICO_clean between 500 and 549 then '500-549'
+when FICO_clean between 550 and 599 then '550-599' 
+when FICO_clean >= 600 then '600+'
+else 'No Score'
+end as fico_cat
+
+, floor(FICO/10)*10 as FICO_cat_10s
+, floor(FICO/25)*25 as FICO_cat_25s
+, REPLACE(LTRIM(REPLACE(open_trade_count_total, '0', ' ')),' ', '0') as open_trade_count_total
+, REPLACE(LTRIM(REPLACE(openRevolvingTradeCount, '0', ' ')),' ', '0') as openRevolvingTradeCount
+, REPLACE(LTRIM(REPLACE(openInstallmentTradeCount, '0', ' ')),' ', '0') as openInstallmentTradeCount
+, REPLACE(LTRIM(REPLACE(creditLimit_total, '0', ' ')),' ', '0') as creditLimit_total 
+, REPLACE(LTRIM(REPLACE(currentBalance_total, '0', ' ')),' ', '0') as currentBalance_total 
+, REPLACE(LTRIM(REPLACE(creditLimit_revolving, '0', ' ')),' ', '0') as creditLimit_revolving-- get rid of leading 0s
+, REPLACE(LTRIM(REPLACE(currentBalance_revolving, '0', ' ')),' ', '0') as currentBalance_revolving-- get rid of leading 0s
+, REPLACE(LTRIM(REPLACE(currentBalance_installment, '0', ' ')),' ', '0') as currentBalance_installment
+, REPLACE(LTRIM(REPLACE(totalTradeCount, '0', ' ')),' ', '0') as totalTradeCount
+, REPLACE(LTRIM(REPLACE(revolvingTradeCount, '0', ' ')),' ', '0') as revolvingTradeCount
+, REPLACE(LTRIM(REPLACE(installmentTradeCount, '0', ' ')),' ', '0') as installmentTradeCount
+, REPLACE(LTRIM(REPLACE(collectionCount, '0', ' ')),' ', '0') as collectionCount
+, REPLACE(LTRIM(REPLACE(negativeTradeCount, '0', ' ')),' ', '0') as negativeTradeCount --currently DQ within selected time period
+, REPLACE(LTRIM(REPLACE(historicalNegativeTradeCount, '0', ' ')),' ', '0') as historicalNegativeTradeCount --number DQ ever within selected time period
+, REPLACE(LTRIM(REPLACE(openMortgageTradeCount, '0', ' ')),' ', '0') as openMortgageTradeCount --currently DQ within selected time period
+, REPLACE(LTRIM(REPLACE(totalInquiryCount, '0', ' ')),' ', '0') as totalInquiryCount
+
+, mostRecentDQstatus
+, mostRecentDQdate
+, PaycheckModelUsed
+--, round(MLModelScore, 2) as MLModelScore_rounded 
+, floor(MLModelScore/0.01)*0.01 as MLModelScore_1s
+, MLModelScore
+, case when floor(MLModelScore/0.01)*0.01 = 0 then '(0-0.01)'
+when floor(MLModelScore/0.01)*0.01 = 0.01 then '[0.01-0.02)'
+when floor(MLModelScore/0.01)*0.01 = 0.02 then '[0.02-0.03)'
+when floor(MLModelScore/0.01)*0.01 = 0.03 then '[0.03-0.04)'
+when floor(MLModelScore/0.01)*0.01 = 0.04 then '[0.04-0.05)'
+when floor(MLModelScore/0.01)*0.01 between 0.05 and 0.1 then '[0.05-0.10]'
+when floor(MLModelScore/0.01)*0.01 > 0.1 then '0.11+'
+end as model_cat_floor 
+, balanceAverage as checkingAcct_balanceAverage
+, AverageMonthlySpend 
+, paycheck
+, floor(Paycheck/500)*500 as paycheck_cat
+, averageMonthlyIncome
+, DATEDIFF(DAY, mostRecentDQdate, CreatedAt) AS days_since_last_DQ
+, case when createdAt between '2021-11-01' and  '2021-12-31' then 'Nov - Dec 2021'
+when createdAt between '2022-04-01' and  '2022-06-30' then 'Apr - Jun 2022'
+else 'Other'
+end as date_cat
+into #TU_plus_cashflow_clean2
+from #TU_plus_cashflow_clean
+;
+
+
+drop table if exists #TU_plus_cashflow_clean3;
+SELECT
+distinct userId as userId_b
+, created_year_month
+, fico 
+, fico_cat
+, fico_cat_25s
+
+--- converting nulls into 0's to properly capture averages
+, case when open_trade_count_total is null then 0 when open_trade_count_total = 'NA' then 0 else open_trade_count_total end as open_trade_count_total_clean
+, case when openRevolvingTradeCount is null then 0 when openRevolvingTradeCount = 'NA' then 0 else openRevolvingTradeCount end as openRevolvingTradeCount_clean
+, case when openInstallmentTradeCount is null then 0 when openInstallmentTradeCount = 'NA' then 0 else openInstallmentTradeCount end as openInstallmentTradeCount_clean
+, case when negativeTradeCount is null then 0 when negativeTradeCount = 'NA' then 0 else negativeTradeCount end as negativeTradeCount_clean
+, case when revolvingTradeCount is null then 0 when revolvingTradeCount = 'NA' then 0 else revolvingTradeCount end as revolvingTradeCount_clean
+, case when installmentTradeCount is null then 0 when installmentTradeCount = 'NA' then 0 else installmentTradeCount end as installmentTradeCount_clean
+, case when totalInquiryCount is null then 0 when totalInquiryCount = 'NA' then 0 else totalInquiryCount end as totalInquiryCount_clean
+, case when collectionCount is null then 0 when collectionCount = 'NA' then 0 else collectionCount end as collectionCount_clean
+, case when totalTradeCount is null then 0 when totalTradeCount = 'NA' then 0 else totalTradeCount end as totalTradeCount_clean
+, case when historicalNegativeTradeCount is null then 0 when historicalNegativeTradeCount = 'NA' then 0 else historicalNegativeTradeCount end as historicalNegativeTradeCount_clean
+, case when creditLimit_total is null then 0 when creditLimit_total = 'NA' then 0 else creditLimit_total end as creditLimit_total_clean
+, case when currentBalance_total is null then 0 when currentBalance_total = 'NA' then 0 else currentBalance_total end as currentBalance_total_clean
+, case when creditLimit_revolving is null then 0 when creditLimit_revolving = 'NA' then 0 else creditLimit_revolving end as creditLimit_revolving_clean
+, case when currentBalance_revolving is null then 0 when currentBalance_revolving = 'NA' then 0 else currentBalance_revolving end as currentBalance_revolving_clean
+, case when currentBalance_installment is null then 0 when currentBalance_installment = 'NA' then 0 else currentBalance_installment end as currentBalance_installment_clean
+, case when days_since_last_DQ is null then 0 else days_since_last_DQ end as days_since_last_DQ_clean
+, mostRecentDQstatus 
+, paycheckModelUsed 
+, model_cat_floor 
+, checkingAcct_balanceAverage 
+, AverageMonthlySpend 
+, paycheck 
+, paycheck_cat 
+, averageMonthlyIncome 
+, date_cat
+into #TU_plus_cashflow_clean3
+from #TU_plus_cashflow_clean2
+;
+
+
+select 
+created_year_month 
+, fico_cat 
+, fico_cat_25s 
+, paycheckModelUsed
+, paycheck_cat 
+, model_cat_floor 
+, mostRecentDQstatus 
+, currentBalance_installment_clean 
+, currentBalance_Revolving_clean 
+, openRevolvingTradeCount_clean 
+, openInstallmentTradeCount_clean 
+, open_trade_count_total_clean 
+, negativeTradeCount_clean 
+, collectionCount_clean 
+, creditLimit_revolving_clean 
+, currentBalance_revolving_clean 
+, currentBalance_installment_clean 
+, count(distinct userID_b) as tot_users 
+from #TU_plus_cashflow_clean3 
+group by created_year_month , fico_cat , fico_cat_25s , paycheckModelUsed, paycheck_cat , model_cat_floor , mostRecentDQstatus 
+, currentBalance_installment_clean , currentBalance_Revolving_clean , openRevolvingTradeCount_clean , openInstallmentTradeCount_clean 
+, open_trade_count_total_clean , negativeTradeCount_clean , collectionCount_clean , creditLimit_revolving_clean , currentBalance_revolving_clean 
+, currentBalance_installment_clean
+;
