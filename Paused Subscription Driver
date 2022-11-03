@@ -1,0 +1,87 @@
+drop table if exists #paused_sub_starter
+select 
+distinct UserSubscriptionId 
+, InvoiceDate 
+into #paused_sub_starter
+from UserSubscriptionInvoice
+where invoiceDate >= '2022-03-01'
+order by UserSubscriptionId
+;
+
+drop table if exists #paused_sub_starter2
+select 
+distinct UserSubscriptionId  
+, InvoiceDate
+, row_number() over(partition by UserSubscriptionId order by InvoiceDate asc) as row_num
+into #paused_sub_starter2
+from #paused_sub_starter
+order by UserSubscriptionId, row_num
+;
+drop table if exists #paused_sub_starter3
+select 
+distinct UserSubscriptionId 
+, row_num
+, InvoiceDate
+, dateadd(month, 1, InvoiceDate ) as next_month
+into #paused_sub_starter3 
+from #paused_sub_starter2 
+where 1=1 
+--and UserSubscriptionId = 714857 --paused sub example
+;
+drop table if exists #paused_sub_starter4
+select 
+a.*
+, b.next_month 
+into #paused_sub_starter4
+from #paused_sub_starter2 a
+left join #paused_sub_starter3 b
+on a.invoiceDate = b.next_month and  a.UserSubscriptionId = b.UserSubscriptionId 
+where 1=1 
+--and a.UserSubscriptionId = 714857 --paused sub example
+order by row_num
+;
+drop table if exists #Paused_Sub_DRIVER
+select 
+* 
+into #Paused_Sub_DRIVER
+from #paused_sub_starter4 
+where row_num > 1 
+and next_month is null 
+;
+
+drop table if exists #Paused_Sub_Sub_Status
+select 
+distinct UserSubscriptionId
+, UserId 
+, SubscriptionStatus
+, case when SubscriptionStatus = 0 then 'None'
+when SubscriptionStatus = 1 then 'Active'
+when SubscriptionStatus = 2 then 'Overdue'
+when SubscriptionStatus = 3 then 'Cancelled'
+when SubscriptionStatus = 4 then 'Delinquent'
+when SubscriptionStatus = 5 then 'Closed by User'
+when SubscriptionStatus = 6 then 'Closed by Empower'
+when SubscriptionStatus = 7 then 'Pending Payment'
+when SubscriptionStatus = 8 then 'Trial Autoclose'
+when SubscriptionStatus = 9 then 'Subscription Paused'
+else 'n/a'
+end as SubscriptionStatus_enum
+into #Paused_Sub_Sub_Status
+from userSubscription
+where 1=1 
+and UserSubscriptionId in (select UserSubscriptionId from #Paused_Sub_DRIVER)
+;
+
+select * from #Paused_Sub_Sub_Status where SubscriptionStatus_enum = 'Subscription Paused' ;
+select * from #paused_sub_starter4 where UserSubscriptionId = 2106537 order by row_num;
+select * from UserSubscriptionInvoice where UserSubscriptionId = 2106537;
+
+--6508 paused subs 
+select 
+SubscriptionStatus_enum 
+, count(distinct UserId) as userId_count 
+, count(distinct UserSubscriptionId) as UserSubscriptionId_count 
+from #Paused_Sub_Sub_Status 
+where 1 = 1
+group by SubscriptionStatus_enum  
+;
