@@ -43,45 +43,42 @@ order by row_num
 drop table if exists #Paused_Sub_DRIVER
 select 
 * 
+, row_num as return_row_num
+, InvoiceDate as return_month
+, dateadd(month, -1, InvoiceDate) as a_skipped_month
+, 1 as pauser_indicator
 into #Paused_Sub_DRIVER
 from #paused_sub_starter4 
 where row_num > 1 
 and next_month is null 
 ;
-
-drop table if exists #Paused_Sub_Sub_Status
+drop table if exists #Pausers_and_NotPausers
 select 
-distinct UserSubscriptionId
-, UserId 
-, SubscriptionStatus
-, case when SubscriptionStatus = 0 then 'None'
-when SubscriptionStatus = 1 then 'Active'
-when SubscriptionStatus = 2 then 'Overdue'
-when SubscriptionStatus = 3 then 'Cancelled'
-when SubscriptionStatus = 4 then 'Delinquent'
-when SubscriptionStatus = 5 then 'Closed by User'
-when SubscriptionStatus = 6 then 'Closed by Empower'
-when SubscriptionStatus = 7 then 'Pending Payment'
-when SubscriptionStatus = 8 then 'Trial Autoclose'
-when SubscriptionStatus = 9 then 'Subscription Paused'
-else 'n/a'
-end as SubscriptionStatus_enum
-into #Paused_Sub_Sub_Status
-from userSubscription
-where 1=1 
-and UserSubscriptionId in (select UserSubscriptionId from #Paused_Sub_DRIVER)
+a.* 
+, b.return_row_num
+, b.return_month
+, b.a_skipped_month 
+, b.pauser_indicator
+into #Pausers_and_NotPausers
+from #paused_sub_starter4 a 
+left join #Paused_Sub_DRIVER b
+on a.UserSubscriptionId = b.UserSubscriptionId
 ;
-
-select * from #Paused_Sub_Sub_Status where SubscriptionStatus_enum = 'Subscription Paused' ;
-select * from #paused_sub_starter4 where UserSubscriptionId = 2106537 order by row_num;
-select * from UserSubscriptionInvoice where UserSubscriptionId = 2106537;
-
---6508 paused subs 
+drop table if exists #BeforePauseMonthCheck
+select
+UserSubscriptionId
+, invoiceDate as before_pause_month
+into #BeforePauseMonthCheck
+from #Pausers_and_NotPausers
+where pauser_indicator = 1
+and row_num = (return_row_num - 1)
+;
+drop table if exists #Pausers_and_NotPausers2
 select 
-SubscriptionStatus_enum 
-, count(distinct UserId) as userId_count 
-, count(distinct UserSubscriptionId) as UserSubscriptionId_count 
-from #Paused_Sub_Sub_Status 
-where 1 = 1
-group by SubscriptionStatus_enum  
+a.* 
+, b.before_pause_month
+into #Pausers_and_NotPausers2
+from #Pausers_and_NotPausers a
+left join #BeforePauseMonthCheck b 
+on a.UserSubscriptionId = b.UserSubscriptionId 
 ;
