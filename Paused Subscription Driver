@@ -1,3 +1,4 @@
+
 drop table if exists #paused_sub_starter
 select 
 distinct UserSubscriptionId 
@@ -81,4 +82,163 @@ into #Pausers_and_NotPausers2
 from #Pausers_and_NotPausers a
 left join #BeforePauseMonthCheck b 
 on a.UserSubscriptionId = b.UserSubscriptionId 
+;
+drop table if exists #Pausers_Length
+select 
+* 
+, (datediff(month, before_pause_month, return_month)-1) as pause_length
+into #Pausers_Length
+from #Pausers_and_NotPausers2 
+where pauser_indicator = 1
+order by UserSubscriptionId, row_num
+;
+drop table if exists #Pausers_and_NotPausersvF
+select 
+distinct a.UserSubscriptionId 
+, a.pauser_indicator 
+, b.pause_length 
+, a.InvoiceDate 
+, a.row_num 
+, a.next_month 
+, a.return_row_num 
+, a.return_month 
+, a.a_skipped_month 
+, a.before_pause_month 
+into #Pausers_and_NotPausersvF
+from #Pausers_and_NotPausers2 a
+left join #Pausers_Length b 
+on a.UserSubscriptionId = b.UserSubscriptionId 
+;
+
+-- select * from #Pausers_and_NotPausersvF where UserSubscriptionId = 1684686 order by row_num ;
+-- select top 100 * from #Pausers_and_NotPausers where pauser_indicator = 1 order by UserSubscriptionId, invoiceDate ;
+-- --datediff(month, return_month, pre_pause_month) as pause_length
+-- select * from #Paused_Sub_DRIVER ;
+-- select * from #paused_sub_starter4 where UserSubscriptionId = 2106537 order by row_num;
+-- select * from #paused_sub_starter4 where UserSubscriptionId =  1599177 order by row_num; -- skipped may
+
+drop table if exists #Paused_Sub_Sub_Status
+select 
+distinct a.UserSubscriptionId
+, b.UserId 
+, b.SubscriptionStatus
+, a.pauser_indicator 
+, a.pause_length 
+, concat(year(a.before_pause_month), '-' , month(a.before_pause_month)) as month_yr_before_pause
+, case when SubscriptionStatus = 0 then 'None'
+when SubscriptionStatus = 1 then 'Active'
+when SubscriptionStatus = 2 then 'Overdue'
+when SubscriptionStatus = 3 then 'Cancelled'
+when SubscriptionStatus = 4 then 'Delinquent'
+when SubscriptionStatus = 5 then 'Closed by User'
+when SubscriptionStatus = 6 then 'Closed by Empower'
+when SubscriptionStatus = 7 then 'Pending Payment'
+when SubscriptionStatus = 8 then 'Trial Autoclose'
+when SubscriptionStatus = 9 then 'Subscription Paused'
+else 'n/a'
+end as SubscriptionStatus_enum
+into #Paused_Sub_Sub_Status
+from #Pausers_and_NotPausersvF a
+left join userSubscription b
+on a.UserSubscriptionId = b.UserSubscriptionId
+where 1=1 
+--and UserSubscriptionId in (select UserSubscriptionId from #Paused_Sub_DRIVER)
+;
+
+select * from #Pausers_and_NotPausersvF where usersubscriptionId = 2061250 order by row_num ;
+select * from #Paused_Sub_Sub_Status where pause_length = -1 ;
+select * from #Paused_Sub_Sub_Status where SubscriptionStatus_enum = 'Subscription Paused' ;
+select * from #paused_sub_starter4 where UserSubscriptionId = 2106537 order by row_num;
+select * from UserSubscriptionInvoice where UserSubscriptionId = 2106537;
+
+--6508 paused subs 
+select 
+SubscriptionStatus_enum
+, pauser_indicator 
+, pause_length  
+, count(distinct UserId) as userId_count 
+, count(distinct UserSubscriptionId) as UserSubscriptionId_count 
+from #Paused_Sub_Sub_Status 
+where 1 = 1
+group by SubscriptionStatus_enum, pauser_indicator, pause_length  
+;
+
+drop table if exists #PauseNonPause_CA_ML
+select 
+a.* 
+, b.UserCashAdvanceSubscriptionId 
+, c.UserCashAdvanceId
+, c.Amount 
+, c.AdvanceDate 
+, c.CashAdvanceStatus 
+, d.MLModelScore
+, d.BalanceAverage
+, d.Paycheck  
+, d.DateGenerated
+into #PauseNonPause_CA_ML
+from #Paused_Sub_Sub_Status a 
+left join UserCashAdvanceSubscription b 
+on a.UserId = b.UserId 
+left join UserCashAdvance c 
+on b.UserCashAdvanceSubscriptionId = c.UserCashAdvanceSubscriptionId
+left join (select UserId, UserCreditVariableId, DateGenerated, PaycheckArchetype, MLModelScore,
+			BalanceAverage, AverageMonthlySpend, TotalCash, AverageMonthlyIncome, Paycheck, Income, 
+OutstandingCompetitorBalance, PaycheckAccountCurrentBalance
+	from UserCreditVariable with (nolock)
+	where (DateGenerated >= '2021-06-01' and DateGenerated < '2022-02-19' and CreditVariableEdition = 1)
+			or (DateGenerated >= '2022-02-19' and CreditVariableEdition = 2)
+	) d 
+on a.UserId = d.UserId 
+where 1=1 
+and DateGenerated < c.AdvanceDate
+and DateGenerated > DATEADD(Day,-1, c.AdvanceDate)
+and c.AdvanceDate >= '2022-03-01'
+;
+drop table if exists #PauseNonPause_CA_ML2
+select 
+distinct UserSubscriptionId 
+, SubscriptionStatus_enum
+, UserCashAdvanceId 
+, amount 
+, cashAdvanceStatus
+, MLModelScore
+, DateGenerated
+, case when floor(MLModelScore/0.01)*0.01 = 0 then '(0-0.01)'
+when floor(MLModelScore/0.01)*0.01 = 0.01 then '[0.01-0.02)'
+when floor(MLModelScore/0.01)*0.01 = 0.02 then '[0.02-0.03)'
+when floor(MLModelScore/0.01)*0.01 = 0.03 then '[0.03-0.04)'
+when floor(MLModelScore/0.01)*0.01 = 0.04 then '[0.04-0.05)'
+when floor(MLModelScore/0.01)*0.01 between 0.05 and 0.1 then '[0.05-0.10]'
+when floor(MLModelScore/0.01)*0.01 > 0.1 then '0.11+'
+end as model_cat_floor 
+, pauser_indicator
+, row_number() over(partition by UserCashAdvanceId order by DateGenerated desc) as ML_row_num
+into #PauseNonPause_CA_ML2
+from #PauseNonPause_CA_ML 
+;
+drop table if exists #PauseNonPause_CA_ML3
+select 
+*
+, row_number() over(partition by UserSubscriptionId order by UserCashAdvanceId desc) as CA_row_num
+into #PauseNonPause_CA_ML3
+from #PauseNonPause_CA_ML2
+where 1=1
+and ML_row_num = 1
+;
+
+select 
+model_cat_floor 
+, pauser_indicator 
+, CA_row_num 
+, amount 
+, cashAdvanceStatus 
+, SubscriptionStatus_enum
+, count(distinct UserSubscriptionId) as subCount
+from #PauseNonPause_CA_ML3
+group by model_cat_floor 
+, pauser_indicator 
+, CA_row_num 
+, amount 
+, cashAdvanceStatus 
+, SubscriptionStatus_enum
 ;
