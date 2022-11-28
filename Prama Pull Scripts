@@ -1,5 +1,21 @@
 select 
 *
+
+, case when acct_mop_cde = '01'  then 'Paid or paying as agreed'
+when acct_mop_cde = '02'  then '30 days past due'
+when acct_mop_cde = '03'  then '60 days past due'
+when acct_mop_cde = '04'  then '90 days past due'
+when acct_mop_cde = '05'  then '120 days past due'
+when acct_mop_cde = '07'  then 'Wage earner or similar plan'
+when acct_mop_cde = '08'  then 'Repossession'
+when acct_mop_cde = '8A'  then 'Voluntary surrender'
+when acct_mop_cde = '8P'  then 'Payment after repossession'
+when acct_mop_cde = '09'  then 'Charged off as bad debt'
+when acct_mop_cde = '9B'  then 'Collection'
+when acct_mop_cde = '9P'  then 'Payment after charge off/collection'
+when acct_mop_cde = 'UR'  then 'Unrated or bankruptcy'
+end as manner_of_payment
+
 , case when acct_typ_cde = 'AG' then 'Collection Agency/Attorney'
 when acct_typ_cde = 'AL' then 'Auto Lease'
 when acct_typ_cde = 'AU' then 'Automobile'
