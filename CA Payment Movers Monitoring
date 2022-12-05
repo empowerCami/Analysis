@@ -1,0 +1,74 @@
+drop table if exists #driver;
+select
+distinct a.UserCashAdvanceId
+, b.UserId
+ , a.Amount
+ , a.AdvanceDate
+ , substring((cast(a.AdvanceDate as varchar)), 6, 6) as [adv_date_str] --casting date to truncate to day 
+ , month(a.AdvanceDate) as adv_month 
+ , a.OriginalRepayDate
+ , a.RepayDate
+, case when a.OriginalRepayDate is NOT null AND a.OriginalRepayDate < a.RepayDate then 1 else 0 end as [date_pushed_ind] --Indicating when the orig date before the repay date 
+, case when a.OriginalRepayDate is null then 1 else 0 end as null_orig_paydate_flag
+, datediff(day, a.OriginalRepayDate, a.RepayDate) as [payment_date_delta] --difference btwn new payback date vs date originally assigned
+, a.CashAdvanceStatus
+--, z.ForecastNextDate
+
+into #driver
+from UserCashAdvance a
+inner join [UserCashAdvanceSubscription] b 
+on a.UserCashAdvanceSubscriptionId = b.UserCashAdvanceSubscriptionId 
+-- left join UserPaychecks z 
+-- on b.UserId = z.UserId and z.ForecastNextDate > a.AdvanceDate 
+where 1=1
+and a.AdvanceDate >=  '2022-09-11'  
+;
+
+--select top 100 * from CollectionStrategies -- from #driver ;
+
+drop table if exists #collectionsJoin 
+select 
+a.* 
+, c.collectionRailChangeReasonType -- 4 means reapy date change
+, c.createdAt as date_changed
+into #collectionsJoin
+from #driver a 
+left join UserCashAdvanceToCollectionStrategies b 
+on a.userCashAdvanceID = b.userCashAdvanceID
+left join CollectionStrategies c 
+on b.collectionStrategyID = c.collectionStrategyID
+where collectionRailChangeReasonType = 4
+;
+
+drop table if exists #repay_date_move_driver
+select 
+a.* 
+, b.collectionRailChangeReasonType
+, b.date_changed
+, case when b.date_changed < '2022-10-11' then 'pre Ada change' --Ada change occured 10/11
+when b.date_changed >= '2022-10-11' then 'post Ada change'
+end as change_cohort 
+, case when a.advanceDate between '2022-09-11' and '2022-09-18' then 'Sept 11-18' -- when the advance occured (exploring different ways to compare cohorts)
+when a.advanceDate between '2022-10-11' and '2022-10-18' then 'Oct 11-18'
+end as advance_date_cohort
+, datediff(day, b.date_changed, a.OriginalRepayDate) as days_changed_in_advance -- pulling how soon before due date users changed their date
+, case when a.payment_date_delta between 1 and 14 then '1-14' 
+when a.payment_date_delta between 15 and 30 then '15-30' 
+when a.payment_date_delta > 30 then '>30' 
+else 'n/a'
+end as payment_push_amount -- grouping how much users pushed their date back by 
+into #repay_date_move_driver
+from #driver a
+left join #collectionsJoin b 
+on a.userCashAdvanceID = b.userCashAdvanceID 
+--where a.advanceDate between '2022-10-04' and '2022-10-18'
+;
+
+-- Used the following pull in excel to do the analysis
+select 
+*
+, row_number() over(partition by userCashAdvanceID order by date_changed asc) as change_number -- ranks changes for those that changed multiple times
+from #repay_date_move_driver 
+where date_pushed_ind = 1
+and advance_date_cohort is not null
+;
