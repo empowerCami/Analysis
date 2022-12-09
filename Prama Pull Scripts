@@ -1,3 +1,147 @@
+
+select 
+follow_consumer_id
+, EVTG04_FINSCORE as FICO
+--- bankcard payment behavior
+, EADS30_BCPMTSTR as bankcard_payment_type_string
+, EADS30_BCPMTNUM as bankcard_payment_type_enum
+---Spend metrics 
+, avg(EADS15_AGGS101, EADS15_AGGS102, EADS15_AGGS103, EADS15_AGGS104, EADS15_AGGS105, EADS15_AGGS106, EADS15_AGGS107, EADS15_AGGS108, EADS15_AGGS109, EADS15_AGGS110
+, EADS15_AGGS111, EADS15_AGGS112, EADS15_AGGS113, EADS15_AGGS114, EADS15_AGGS115, EADS15_AGGS116, EADS15_AGGS117, EADS15_AGGS118, EADS15_AGGS119, EADS15_AGGS120
+, EADS15_AGGS121, EADS15_AGGS122, EADS15_AGGS123, EADS15_AGGS124) as avg_bankcard_spend_last2yrs 
+, EADS15_AGGS901 as agg_spend_last3m
+, EADS15_AGGS902 as agg_spend_last6m
+, EADS15_AGGS903 as agg_spend_last12m
+, EADS15_AGGS904 as peak_spend_last12m
+, EADS15_AGGS905 as months_since_peak_spend
+, EADS15_WALSHRS1 as lastmonth_fiw_spend_to_total_spend_ratio -- bankcard with highest spend / total bankcard spen
+, EADS15_WALSHRS2 as annual_fiw_spend_to_total_spend_ratio
+
+---Payment metrics
+, EADS10_PAYMNT01 as count_IL_overPaid_last3m
+, EADS10_PAYMNT02 as count_IL_overPaid_last12m
+, EADS10_PAYMNT03 as amount_IL_overPaid_last1m 
+, EADS10_PAYMNT04 as amount_IL_overPaid_last3m
+, EADS10_PAYMNT05 as amount_IL_overPaid_last12m
+, EADS10_PAYMNT06 as ratio_paid_to_due_IL_last6m
+, EADS10_PAYMNT07 as ratio_paid_to_due_nonMortgageAccts_last1m
+, EADS10_PAYMNT08 as ratio_paid_to_due_RevolvingAccts_last1m
+, EADS10_PAYMNT09 as ratio_paid_to_due_BankCardAccts_last1m  
+, EADS10_PAYMNT10 as pmt_count_last3m
+, EADS10_PAYMNT11 as pmt_count_last12m
+
+---wallet share metrics
+, EADS09_WALSHR07 as max_walletShare_last3m
+, EADS09_WALSHR08 as max_walletShare_last12m
+
+--- revolver6x metrics
+, EADS55_RVLR61 as revolved_1x_plus_last6m
+, EADS55_RVLR62 as revolved_2x_plus_last6m
+, EADS55_RVLR63 as revolved_3x_plus_last6m
+, EADS55_RVLR64 as revolved_4x_plus_last6m
+, EADS55_RVLR65 as revolved_5x_plus_last6m
+, EADS55_RVLR66 as revolved_6x_plus_last6m
+
+---usage metrics
+, EADS52PR_REV201 as revolvingAccts_tot_payment_ratio_last1m
+, EADS52PR_REV202 as revolvingAccts_tot_payment_ratio_last3m
+, EADS52PR_REV203 as revolvingAccts_tot_payment_ratio_last6m
+, EADS52PR_REV204 as revolvingAccts_tot_payment_ratio_last12m
+, EADS52PR_REV205 as revolvingAccts_tot_payment_ratio_last24m
+, EADS52PR_REV222 as revolvingAccts_avg_payment_ratio_last3m
+, EADS52PR_REV223 as revolvingAccts_avg_payment_ratio_last6m
+, EADS52PR_REV224 as revolvingAccts_avg_payment_ratio_last12m
+, EADS52PR_REV225 as revolvingAccts_avg_payment_ratio_last24m
+
+--bankcard usage assuming (not in sheet)
+, EADS52PR_BKC201 as bankcardAccts_tot_payment_ratio_last1m
+, EADS52PR_BKC202 as bankcardAccts_tot_payment_ratio_last3m
+, EADS52PR_BKC203 as bankcardAccts_tot_payment_ratio_last6m
+, EADS52PR_BKC204 as bankcardAccts_tot_payment_ratio_last12m
+, EADS52PR_BKC205 as bankcardAccts_tot_payment_ratio_last24m
+, EADS52PR_BKC222 as bankcardAccts_avg_payment_ratio_last3m
+, EADS52PR_BKC223 as bankcardAccts_avg_payment_ratio_last6m
+, EADS52PR_BKC224 as bankcardAccts_avg_payment_ratio_last12m
+, EADS52PR_BKC225 as bankcardAccts_avg_payment_ratio_last24m
+
+--retail card usage
+, EADS52PR_RET201 as retailAccts_tot_payment_ratio_last1m
+, EADS52PR_RET202 as retailAccts_tot_payment_ratio_last3m
+, EADS52PR_RET203 as retailAccts_tot_payment_ratio_last6m
+, EADS52PR_RET204 as retailAccts_tot_payment_ratio_last12m
+, EADS52PR_RET205 as retailAccts_tot_payment_ratio_last24m
+, EADS52PR_RET222 as retailAccts_avg_payment_ratio_last3m
+, EADS52PR_RET223 as retailAccts_avg_payment_ratio_last6m
+, EADS52PR_RET224 as retailAccts_avg_payment_ratio_last12m
+, EADS52PR_RET225 as retailAccts_avg_payment_ratio_last24m
+
+-- auto usage
+, EADS52PR_AUT201 as auto_tot_payment_ratio_last1m
+, EADS52PR_AUT202 as auto_tot_payment_ratio_last3m
+, EADS52PR_AUT203 as auto_tot_payment_ratio_last6m
+, EADS52PR_AUT204 as auto_tot_payment_ratio_last12m
+, EADS52PR_AUT205 as auto_tot_payment_ratio_last24m
+, EADS52PR_AUT222 as auto_avg_payment_ratio_last3m
+, EADS52PR_AUT223 as auto_avg_payment_ratio_last6m
+, EADS52PR_AUT224 as auto_avg_payment_ratio_last12m
+, EADS52PR_AUT225 as auto_avg_payment_ratio_last24m
+
+--student loans usage
+, EADS52PR_STD201 as studentLoans_tot_payment_ratio_last1m
+, EADS52PR_STD202 as studentLoans_tot_payment_ratio_last3m
+, EADS52PR_STD203 as studentLoans_tot_payment_ratio_last6m
+, EADS52PR_STD204 as studentLoans_tot_payment_ratio_last12m
+, EADS52PR_STD205 as studentLoans_tot_payment_ratio_last24m
+, EADS52PR_STD222 as studentLoans_avg_payment_ratio_last3m
+, EADS52PR_STD223 as studentLoans_avg_payment_ratio_last6m
+, EADS52PR_STD224 as studentLoans_avg_payment_ratio_last12m
+, EADS52PR_STD225 as studentLoans_avg_payment_ratio_last24m
+
+--personal loans usage
+, EADS52PR_PER201 as personalLoans_tot_payment_ratio_last1m
+, EADS52PR_PER202 as personalLoans_tot_payment_ratio_last3m
+, EADS52PR_PER203 as personalLoans_tot_payment_ratio_last6m
+, EADS52PR_PER204 as personalLoans_tot_payment_ratio_last12m
+, EADS52PR_PER205 as personalLoans_tot_payment_ratio_last24m
+, EADS52PR_PER222 as personalLoans_avg_payment_ratio_last3m
+, EADS52PR_PER223 as personalLoans_avg_payment_ratio_last6m
+, EADS52PR_PER224 as personalLoans_avg_payment_ratio_last12m
+, EADS52PR_PER225 as personalLoans_avg_payment_ratio_last24m
+
+, EAPR1B_AVGAPR as revolvingCards_avgAPR	
+, EAPR1B_AVGINT	as agg_monthly_interest 
+, EAPR1B_AVGBAL	as avg_monthly_agg_balance 
+-- EAPR1B_APRBC01 -- as Number of revolving bankcards with estimated effective APR >= 3% and balance > $0
+-- EAPR1B_APRBC02	Number of revolving bankcards with estimated effective APR < 3% and balance > $0
+-- EAPR1B_AGGBAL01	Aggregate bankcard balances with estimated effective APR >= 3%
+-- EAPR1B_AGGBAL02	Aggregate bankcard balances with estimated effective APR < 3%
+-- EAPR1B_AGGBAL03	Aggregate bankcard balances with estimated effective APR 3% - 5%
+-- EAPR1B_AGGBAL04	Aggregate bankcard balances with estimated effective APR 5% - 8%
+-- EAPR1B_AGGBAL05	Aggregate bankcard balances with estimated effective APR 8% -13%
+-- EAPR1B_AGGBAL06	Aggregate bankcard balances with estimated effective APR 13% - 18%
+-- EAPR1B_AGGBAL07	Aggregate bankcard balances with estimated effective APR 18% - 25%
+, EAPR1B_AGGBAL08 as agg_balances_APR25plus --Aggregate bankcard balances with estimated effective APR > 25%
+-- EAPR1B_APRMAX	Highest estimated effective APR on a bankcard with balance > $500
+-- EAPR1B_BALMAX	Current balance on bankcard with highest estimated effective APR and balance >$ 500
+-- EAPR1B_APRBC1	Estimated effective APR for the revolving bankcard with the highest current balance
+-- EAPR1B_APRBC2	Estimated effective APR for the revolving bankcard with the second highest current balance
+-- EAPR1B_APRBC3	Estimated effective APR for the revolving bankcard with the third highest current balance
+-- EAPR1B_APRBC4	Estimated effective APR for the revolving bankcard with the fourth highest current balance
+-- EAPR1B_APRBC5	Estimated effective APR for the revolving bankcard with the fifth highest current balance
+, EAPR1B_APRBAL1 as highest_balance_revolving_card -- Current balance for the revolving bankcard with the highest current balance
+-- EAPR1B_APRBAL2	Current balance for the revolving bankcard with the second highest current balance
+-- EAPR1B_APRBAL3	Current balance for the revolving bankcard with the third highest current balance
+-- EAPR1B_APRBAL4	Current balance for the revolving bankcard with the forth highest current balance
+-- EAPR1B_APRBAL5	Current balance for the revolving bankcard with the fifth highest current balance
+, EAPR1B_APRCL1 as CL_highest_bal_card -- Credit limit for the revolving bankcard with the highest current balance
+, EAPR1B_APRCL2 as CL_2ndhighest_bal_card --	Credit limit for the revolving bankcard with the second highest current balance
+, EAPR1B_APRCL3 as CL_3rdhighest_bal_card --Credit limit for the revolving bankcard with the third highest current balance
+, EAPR1B_APRCL4 as CL_4thhighest_bal_card --	Credit limit for the revolving bankcard with the forth highest current balance
+, EAPR1B_APRCL5 as CL_5thhighest_bal_card	-- Credit limit for the revolving bankcard with the fifth highest current balance
+
+from TransUnionModelsScoresAttributesData
+;
+
 select 
 *
 
