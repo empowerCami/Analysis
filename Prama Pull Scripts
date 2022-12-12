@@ -1,14 +1,24 @@
 
+
+drop table if exists #TransUnionModelsScoresAttributesData_renamed
 select 
+-- --- IMPORTANT: special codes included
+-- -1 no trades this type 
+-- -2 not verified in time period 
+-- -3 no open trades this type 
+-- -4 no trades on file 
+-- -5 cannot calculate (required data is missing)
+-- -6 no trades opened for required time 
+
 follow_consumer_id
 , EVTG04_FINSCORE as FICO
 --- bankcard payment behavior
 , EADS30_BCPMTSTR as bankcard_payment_type_string
 , EADS30_BCPMTNUM as bankcard_payment_type_enum
 ---Spend metrics 
-, avg(EADS15_AGGS101, EADS15_AGGS102, EADS15_AGGS103, EADS15_AGGS104, EADS15_AGGS105, EADS15_AGGS106, EADS15_AGGS107, EADS15_AGGS108, EADS15_AGGS109, EADS15_AGGS110
-, EADS15_AGGS111, EADS15_AGGS112, EADS15_AGGS113, EADS15_AGGS114, EADS15_AGGS115, EADS15_AGGS116, EADS15_AGGS117, EADS15_AGGS118, EADS15_AGGS119, EADS15_AGGS120
-, EADS15_AGGS121, EADS15_AGGS122, EADS15_AGGS123, EADS15_AGGS124) as avg_bankcard_spend_last2yrs 
+-- , avg(EADS15_AGGS101, EADS15_AGGS102, EADS15_AGGS103, EADS15_AGGS104, EADS15_AGGS105, EADS15_AGGS106, EADS15_AGGS107, EADS15_AGGS108, EADS15_AGGS109, EADS15_AGGS110
+-- , EADS15_AGGS111, EADS15_AGGS112, EADS15_AGGS113, EADS15_AGGS114, EADS15_AGGS115, EADS15_AGGS116, EADS15_AGGS117, EADS15_AGGS118, EADS15_AGGS119, EADS15_AGGS120
+-- , EADS15_AGGS121, EADS15_AGGS122, EADS15_AGGS123, EADS15_AGGS124) as avg_bankcard_spend_last2yrs 
 , EADS15_AGGS901 as agg_spend_last3m
 , EADS15_AGGS902 as agg_spend_last6m
 , EADS15_AGGS903 as agg_spend_last12m
@@ -139,6 +149,194 @@ follow_consumer_id
 , EAPR1B_APRCL4 as CL_4thhighest_bal_card --	Credit limit for the revolving bankcard with the forth highest current balance
 , EAPR1B_APRCL5 as CL_5thhighest_bal_card	-- Credit limit for the revolving bankcard with the fifth highest current balance
 
+
+--- Credit summary metrics
+,	EADS24__AT12S as count_open_TLs_last12m --	# of open tradelines last 12 months
+,	EADS24__AT12T as count_open_TLs_last24m --	# of open tradelines last 24 months
+-- ,	EADS24__AT15S 	# of all (open and closed tradelines last 12 months
+-- ,	EADS24__AT15T	# of all (open and closed) tradelines last 24 months
+,	EADS24__AT28S as total_CL_openTLs_last12m --	total credit limit of open tradelines last 12 months
+,	EADS24__AT28T as total_CL_openTLs_last24m --	total credit limit of open tradelines last 24 months
+,	EADS24__AT33A as total_bal_openTLs_last12m --	total balance of tradelines past 12 months
+,	EADS24__AT33T as total_bal_openTLs_last24m --	total balance of tradelines past 24 months
+-- ,	EADS24__AT36A	most recent dq (within past 12 months)
+-- ,	EADS24__AT36B	most recent dq (within past 24 months)
+-- ,	EADS24__AT36C	
+-- ,	EADS24__AT36D	
+-- ,	EADS24__AT57S	total past due amount of open trades past 12 months
+-- ,	EADS24__AT57T	total past due amount of open trades past 24 months
+-- ,	EADS24__AT58S	total payment due amount open trades last 12 months
+-- ,	EADS24__AT58T	total payment due amount open trades last 24 months
+-- ,	EADS24__AT58U	total prior payment due amount of open trades verified in past 11 months
+-- ,	EADS24__AT58V	total prior payment due amount of open trades verified in past 23 months
+-- ,	EADS24__AT59S	total actual payment amount of open trades past 12 months
+-- ,	EADS24__AT59T	total actual payment amount of open trades past 24 months
+,	EADS24__G001B	as count_totalDQ_last12m --# of 30 or more days past due ratings in past 12 months 
+,	EADS24__G001A	as count_totalDQ_last24m --# of 30 or more days past due ratings in past 24 months 
+-- ,	EADS24__G020C	Number of 30 days past due ratings in past 30 months on revolving trades verified in past 12 months
+-- ,	EADS24__G020D	Number of 30 days past due ratings in past 30 months on installment trades verified in past 12 months
+-- ,	EADS24__G020E	Number of 30 days past due ratings in past 30 months on mortgage trades verified in past 12 months
+-- ,	EADS24__G020F	Number of 30 days past due ratings in past 30 months on other trades verified in past 12 months
+-- ,	EADS24__G021C	Number of 60 days past due ratings in past 30 months on revolving trades verified in past 12 months
+-- ,	EADS24__G021D	Number of 60 days past due ratings in past 30 months on installment trades verified in past 12 months
+-- ,	EADS24__G021E	Number of 60 days past due ratings in past 30 months on mortgage trades verified in past 12 months
+-- ,	EADS24__G021F	Number of 60 days past due ratings in past 30 months on other trades verified in past 12 months
+-- ,	EADS24__G022C	Number of 90 or more days past due ratings in past 30 months on revolving trades verified in past 12 months
+-- ,	EADS24__G022D	Number of 90 or more days past due occurrences in past 30 months in installment trades verified in past 12 months
+-- ,	EADS24__G022E	Number of 90 or more days past due occurrences in past 30 months in mortgage trades verified in past 12 months
+-- ,	EADS24__G022F	Number of 90 or more days past due occurrences in past 30 months in other trades verified in past 12 months
+-- ,	EADS24__G093B	Number of public records in past 12 months
+-- ,	EADS24__G093C	Number of public records in past 24 months
+-- ,	EADS24__G218B	Number of trades verified in past 12 months that are currently 30 days or more past due
+-- ,	EADS24__G218E	Number of trades verified in past 24 months that are currently 30 days or more past due
+-- ,	EADS24__G232B	Number of inquiries (includes duplicates) in past 12 months
+-- ,	EADS24__G232C	Number of inquiries (includes duplicates) in past 24 months
+-- ,	EADS24__G250S	Number of trades historically 30 days past due or worse in past 12 months
+-- ,	EADS24__G250T	Number of trades historically 30 days past due or worse in past 24 months
+-- ,	EADS24__G302S	Worst rating on revolving trades in past 12 months
+-- ,	EADS24__G302T	Worst rating on revolving trades in past 24 months
+-- ,	EADS24__G304S	Worst rating on installment trades in past 12 months
+-- ,	EADS24__G304T	Worst rating on installment trades in past 24 months
+-- ,	EADS24__G308S	Worst rating on mortgage trades in past 12 months
+-- ,	EADS24__G308T	Worst rating on mortgage trades in past 24 months
+-- ,	EADS24__G310S	Worst rating on all trades in past 12 months
+-- ,	EADS24__G310T	Worst rating on all trades in past 24 months
+-- ,	EADS24__G316S	Worst rating on other trades in past 12 months
+-- ,	EADS24__G316T	Worst rating on other trades in past 24 months
+,	EADS24__IN12S as count_open_ILaccts_last12m --	Number of open installment trades verified in past 12 months
+-- ,	EADS24__IN12T	Number of open installment trades verified in past 24 months
+-- ,	EADS24__IN15S	Number of all installment trades verified in past 12 months
+-- ,	EADS24__IN15T	Number of all installment trades verified in past 24 months
+,	EADS24__IN33S as total_open_ILbalance_last12m --Total balance of open installment trades verified in past 12 months
+,	EADS24__IN33T as total_open_ILbalance_last24m --	Total balance of open installment trades verified in past 24 months
+-- ,	EADS24__IN57S	Total past due amount of open installment trades verified in past 12 months
+-- ,	EADS24__IN57T	Total past due amount of open installment trades verified in past 24 months
+-- ,	EADS24__IN58S	Total payment due amount of open installment trades verified in past 12 months
+-- ,	EADS24__IN58T	Total payment due amount of open installment trades verified in past 24 months
+-- ,	EADS24__IN58U	Total prior payment due amount of open installment trades verified in past 12 months (month prior to last update within 12 months)
+-- ,	EADS24__IN58V	Total prior payment due amount of open installment trades verified in past 24 months (month prior to last update within 24 months)
+-- ,	EADS24__IN59S	Total (actual) payment amount of open installment trades verified in past 12 months
+-- ,	EADS24__IN59T	Total (actual) payment amount of open installment trades verified in past 24 months
+-- ,	EADS24__MT12S	Number of open mortgage trades verified in past 12 months
+-- ,	EADS24__MT12T	Number of open mortgage trades verified in past 24 months
+-- ,	EADS24__MT15S	Number of all mortgage trades verified in past 12 months
+-- ,	EADS24__MT15T	Number of all mortgage trades verified in past 24 months
+-- ,	EADS24__MT33S	Total balance of open mortgage trades verified in past 12 months
+-- ,	EADS24__MT33T	Total balance of open mortgage trades verified in past 24 months
+-- ,	EADS24__MT57S	Total past due amount of open mortgage trades verified in past 12 months
+-- ,	EADS24__MT57T	Total past due amount of open mortgage trades verified in past 24 months
+-- ,	EADS24__MT59S	Total (actual) payment amount of open mortgage trades verified in past 12 months
+-- ,	EADS24__MT59T	Total (actual) payment amount of open mortgage trades verified in past 24 months
+-- ,	EADS24__MT58S	Total payment due amount of open mortgage trades verified in past 12 months
+-- ,	EADS24__MT58T	
+-- ,	EADS24__MT58U	
+-- ,	EADS24__MT58V	
+,	EADS24__RE12S as count_open_REVaccts_last12m	--Number of open revolving trades verified in past 12 months
+,	EADS24__RE12T as count_open_REVaccts_last24m	--Number of open revolving trades verified in past 24 months
+-- ,	EADS24__RE15S 	Number of all revolving trades verified in past 12 months
+-- ,	EADS24__RE15T	Number of all revolving trades verified in past 24 months
+,	EADS24__RE28S as total_REV_CL_last12m --	Total credit limit of open revolving trades verified in past 12 months
+,	EADS24__RE28T as total_REV_CL_last24m --	Total credit limit of open revolving trades verified in past 24 months
+,	EADS24__RE33S as total_open_REVbalance_last12m --	Total balance of open revolving trades verified in past 12 months
+,	EADS24__RE33T as total_open_REVbalance_last24m --	Total balance of open revolving trades verified in past 24 months
+,	EADS24__RE57S as total_pastDue_REV_last12m --	Total past due amount of open revolving trades verified in past 12 months
+,	EADS24__RE57T as total_pastDue_REV_last24m--	Total past due amount of open revolving trades verified in past 24 months
+-- ,	EADS24__RE58S	Total payment due amount of open revolving trades verified in past 12 months
+-- ,	EADS24__RE58T	
+-- ,	EADS24__RE58U	
+-- ,	EADS24__RE58V	
+-- ,	EADS24__RE59S	Total (actual) payment amount of open revolving trades verified in past 12 months
+-- ,	EADS24__RE59T	
+-- ,	EADS24__OT12S	Number of open other trades verified in past 12 months
+-- ,	EADS24__OT12T	
+-- ,	EADS24__OT15S	Number of all other trades verified in past 12 months
+-- ,	EADS24__OT15T	
+-- ,	EADS24__OT28S	Total credit limit of open other trades verified in past 12 months
+-- ,	EADS24__OT28T	
+-- ,	EADS24__OT33A	Total balance of open other trades verified in past 12 months
+-- ,	EADS24__OT33T	
+-- ,	EADS24__OT57S	Total past due amount of open other trades verified in past 12 months
+-- ,	EADS24__OT57T	
+-- ,	EADS24__OT58S	Total payment due amount of open other trades verified in past 12 months
+-- ,	EADS24__OT58T	
+-- ,	EADS24__OT58U	
+-- ,	EADS24__OT58V	
+-- ,	EADS24__OT59S	Total (actual) payment amount of open other trades verified in past 12 months
+--,	EADS24__OT59T	
+,	EADS24__S071C	as count_3PartyCollections_last12m --Number of third party collections opened in past 12 months
+--,	EADS24__S071D	
+,	EADS24__BCAVG112 as bankcard_payment_AVGratio_actual_to_min_last12m	--Average ratio of actual to minimum payment for bankcard trades over past 12 months
+-- ,	EADS24__BCD101	Aggregate actual payment amount of bankcard trades over past 1 month
+-- ,	EADS24__BCD106	Aggregate actual payment amount of bankcard trades over past 6 months
+-- ,	EADS24__BCD112	Aggregate actual payment amount of bankcard trades over past 12 month
+-- ,	EADS24__BCPAY101	Ratio of actual to minimum payment for bankcard trades over past 1 month
+-- ,	EADS24__BCPAY106	Ratio of actual to minimum payment for bankcard trades over past 6 months
+-- ,	EADS24__BCPAY112	Ratio of actual to minimum payment for bankcard trades over past 12 months
+-- ,	EADS24__INSD101	Aggregate actual payment amount of installment trades over past 1 months
+-- ,	EADS24__INSD106	Aggregate actual payment amount of installment trades over past 6 months
+-- ,	EADS24__INSD112	Aggregate actual payment amount of installment trades over past 12 months
+-- ,	EADS24__INPAY101	Ratio of actual to minimum payment for installment trades over past 1 months
+-- ,	EADS24__INPAY106	Ratio of actual to minimum payment for installment trades over past 6 months
+-- ,	EADS24__INPAY112	Ratio of actual to minimum payment for installment trades over past 12 months
+-- ,	EADS24__INAVG112	Average ratio of actual to minimum payment for installment trades over past 12 months
+-- ,	EADS24__MTD101	Aggregate actual payment amount of mortgage trades over past 1 months
+-- ,	EADS24__MTD106	Aggregate actual payment amount of mortgage trades over past 6 months
+-- ,	EADS24__MTD112	Aggregate actual payment amount of mortgage trades over past 12 months
+-- ,	EADS24__MTPAY101	Ratio of actual to minimum payment for mortgage trades over past 1 months
+-- ,	EADS24__MTPAY106	Ratio of actual to minimum payment for mortgage trades over past 6 months
+-- ,	EADS24__MTPAY112	Ratio of actual to minimum payment for mortgage trades over past 12 months
+-- ,	EADS24__MTAVG112	Ratio of actual to minimum payment for mortgage trades over past 12 months
+-- ,	EADS24__OTD101	Aggregate actual payment amount of other trades over past 1 months
+-- ,	EADS24__OTD106	Aggregate actual payment amount of other trades over past 6 months
+-- ,	EADS24__OTD112	Aggregate actual payment amount of other trades over past 12 months
+-- ,	EADS24__OTPAY101	Ratio of actual to minimum payment for other trades over past 1 months
+-- ,	EADS24__OTPAY106	Ratio of actual to minimum payment for other trades over past 6 months
+-- ,	EADS24__OTPAY112	Ratio of actual to minimum payment for other trades over past 12 months
+-- ,	EADS24__OTAVG112	Average ratio of actual to minimum payment for other trades over past 12 months
+-- ,	EADS24__REVD101	Aggregate actual payment amount of revolving trades over past 1 months
+-- ,	EADS24__REVD106	Aggregate actual payment amount of revolving trades over past 6 months
+-- ,	EADS24__REVD112	  Aggregate actual payment amount of revolving trades over past 12 months
+-- ,	EADS24__RVPAY101	Ratio of actual to minimum payment for revolving trades over past 1 months
+-- ,	EADS24__RVPAY106	Ratio of actual to minimum payment for revolving trades over past 6 months
+-- ,	EADS24__RVPAY112	Ratio of actual to minimum payment for revolving trades over past 12 months
+-- ,	EADS24__RVAVG112	Average ratio of actual to minimum payment for revolving trades over past 12 months
+-- ,	EADS24__REVS901	Aggregate spend of open revolving trades over past 1 months
+,	EADS24__G023C	as count_REV_DQ30_instances_last24m --Number of 30 days past due ratings in past 30 months on revolving trades verified in past 24 months
+,	EADS24__G023D	as count_IL_DQ_instances_last24m  --Number of 30 days past due ratings in past 30 months on installment trades verified in past 24 months
+-- ,	EADS24__G023E	Number of 30 days past due ratings in past 30 months on mortgage trades verified in past 24 months
+-- ,	EADS24__G023F	Number of 30 days past due ratings in past 30 months on other trades verified in past 24 months
+-- ,	EADS24__G024C	Number of 60 days past due ratings in past 30 months on revolving trades verified in past 24 months
+-- ,	EADS24__G024D	Number of 60 days past due ratings in past 30 months on installment trades verified in past 24 months
+-- ,	EADS24__G024E	Number of 60 days past due ratings in past 30 months on mortgage trades verified in past 24 months
+-- ,	EADS24__G024F	Number of 60 days past due ratings in past 30 months on other trades verified in past 24 months
+,	EADS24__G025C	as count_REV_DQ90_instances_last24m --Number of 90 or more days past due ratings in past 30 months on revolving trades verified in past 24 months
+,	EADS24__G025D	as count_IL_DQ90_instances_last24m --Number of 90 or more days past due occurrences in past 30 months in installment trades verified in past 24 months
+-- ,	EADS24__G025E	Number of 90 or more days past due occurrences in past 30 months in mortgage trades verified in past 24 months
+-- ,	EADS24__G025F	Number of 90 or more days past due occurrences in past 30 months in other trades verified in past 24 months
+
+-- -- not that helpful spend metrics
+-- EADS15_INDEX01 
+-- EADS15_INDEX02
+-- EADS15_INDEXQ1
+-- EADS15_INDEXQ2
+-- EADS15_INDEXQ3
+-- EADS15_INDEXQ4
+-- -- not that helpful wallet share metrics
+-- EADS09_WALSHR01 
+-- EADS09_WALSHR02
+-- EADS09_WALSHR03
+-- EADS09_WALSHR04
+-- EADS09_WALSHR05
+-- EADS09_WALSHR06
+-- EADS09_WALSHR09
+-- EADS09_WALSHR10
+, EADS04_TRD as count_tradelines
+, EADS04_BC_TRD as count_bankcard_trades
+, EADS04_INST_TRD as count_IL
+, EADS04_NOMT_TRD as count_NONmortgage_trades
+, EADS04_REV_TRD as count_revolving_trades
+, EADS04_RTL_TRD as count_retail_trades
+into #TransUnionModelsScoresAttributesData_renamed
 from TransUnionModelsScoresAttributesData
 ;
 
