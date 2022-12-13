@@ -1,0 +1,22 @@
+drop table if exists #dis_mont 
+Select 
+a.* 
+, b.advanceDate
+, month(b.advanceDate) as advance_month
+-- format(advanceDate, 'dd-MM-yy') as  advanceDate_new
+-- , count(distinct userId) as tot_users
+into #dis_mont
+from UserCashAdvanceSubscription a
+left join UserCashAdvance b 
+on a.UserCashAdvanceSubscriptionId = b.UserCashAdvanceSubscriptionId
+where MonitoringAccountId <> DistributionAccountId
+and advanceDate > '2022-12-12'
+--group by format(advanceDate, 'dd-MM-yy')
+--and userId = 1175685
+;
+
+select 
+* 
+from #dis_mont
+--order by advanceDate_new
+;
