@@ -428,3 +428,90 @@ when acct_typ_cde = 'VM' then 'VA Real Estate Mortgage'
 end as acct_typ 
 from TransUnionCreditAccountData
 ;
+
+
+drop table if exists #dq_pre_table
+select 
+distinct a.follow_consumer_id 
+, follow_account_id
+, acct_mop_cde 
+, b.fico_cat
+, case when acct_mop_cde in ('02', '03', '04', '05') then 1 else 0 end as current_dq_ind 
+, case when acct_mop_cde in ('08', '8A', '8P', '09', '9B', '9P') then 1 else 0 end as CO_collections_ind
+, case when acct_mop_cde = '01'  then 'Paid or paying as agreed'
+when acct_mop_cde = '02'  then '30 days past due'
+when acct_mop_cde = '03'  then '60 days past due'
+when acct_mop_cde = '04'  then '90 days past due'
+when acct_mop_cde = '05'  then '120 days past due'
+when acct_mop_cde = '07'  then 'Wage earner or similar plan'
+when acct_mop_cde = '08'  then 'Repossession'
+when acct_mop_cde = '8A'  then 'Voluntary surrender'
+when acct_mop_cde = '8P'  then 'Payment after repossession'
+when acct_mop_cde = '09'  then 'Charged off as bad debt'
+when acct_mop_cde = '9B'  then 'Collection'
+when acct_mop_cde = '9P'  then 'Payment after charge off/collection'
+when acct_mop_cde = 'UR'  then 'Unrated or bankruptcy'
+end as manner_of_payment
+, hist_eff_dte
+into #dq_pre_table
+from TransUnionCreditAccountHistoryData a 
+left join #TransUnionModelsScoresAttributesData_renamed b 
+on a.follow_consumer_id = b.follow_consumer_id
+where 1=1 
+and hist_eff_dte >= '2022-07-01' -- pull only open/active 
+order by a.follow_consumer_id 
+;
+-- select top 100 * from TransUnionCreditAccountHistoryData ;
+-- select distinct follow_consumer_id, follow_account_id, fico_cat from #dq_pre_table where dq_ind = 1 order by follow_consumer_id ;
+
+drop table if exists #dq_pre_table_2
+select 
+distinct follow_consumer_id
+, follow_account_id
+, fico_cat 
+, current_dq_ind 
+, CO_collections_ind
+--, RANK() OVER(PARTITION BY follow_consumer_id ORDER BY follow_account_id, current_dq_ind DESC) AS dq_count
+, RANK() OVER(PARTITION BY follow_consumer_id ORDER BY follow_account_id, CO_collections_ind DESC) AS co_count
+into #dq_pre_table_2
+from #dq_pre_table 
+where CO_collections_ind = 1 
+order by follow_consumer_id
+ ;
+
+drop table if exists #dq_pre_table_3
+select 
+distinct a.follow_consumer_id
+, a.fico_cat 
+--, max(b.dq_count) as most_dqs
+, max(b.co_count) as most_cos
+into #dq_pre_table_3
+from #dq_pre_table a 
+left join #dq_pre_table_2 b 
+on a.follow_account_id = b.follow_account_id
+group by  a.follow_consumer_id
+, a.fico_cat 
+;
+
+drop table if exists #dq_pre_table_4
+select 
+distinct follow_consumer_id
+, fico_cat 
+-- , case when most_dqs > 0 then most_dqs
+-- when most_dqs is null then 0 
+-- END as tot_current_dq_per_user
+, case when most_cos > 0 then most_cos
+when most_cos is null then 0 
+END as tot_current_co_per_user
+into #dq_pre_table_4
+from #dq_pre_table_3 
+; 
+select * from #dq_pre_table_4 where tot_current_co_per_user = 0 ;
+
+select 
+fico_cat
+--, tot_current_dq_per_user
+, tot_current_co_per_user
+from #dq_pre_table_4 
+--group by fico_cat
+;
