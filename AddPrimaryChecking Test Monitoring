@@ -1,6 +1,3 @@
-
----- monitoring script 12/19
---- table 1: pull in the account info from accounts created after change 
 drop table if exists #PrimaryCheckingAcctDRIVER
 SELECT 
 distinct b.userId
@@ -10,6 +7,9 @@ distinct b.userId
 , c.AccountType
 , d.HasOAuth
 , b.DateCreated
+, z.SubscriptionStatus
+, z.StartDate as sub_start_date
+
 into #PrimaryCheckingAcctDRIVER
 --from #PrimaryCheckingAcctSUCCEED_ACCT_DRIVER a
 from dbo.InstitutionAccount b
@@ -17,9 +17,12 @@ from dbo.InstitutionAccount b
 left join dbo.Account c 
 on b.InstitutionAccountId = c.InstitutionAccountId
 left join Institution d
-on b.name = d.name
+on b.name = d.name 
+left join userSubscription z 
+on b.UserId = z.UserId 
 where c.AccountType = 0 -- 0 = checking account 
 and b.DateCreated >= '2022-12-19' -- change went live evening of 12/19
+and z.StartDate >= '2022-12-19'
 ;
 --- table 2: add balance info (broken into two tables to manage run time)
 drop table if exists #PrimaryCheckingAcctDRIVER_2
@@ -151,7 +154,8 @@ into #swap_ins
 from #all_flags_added 
 where trxn_amount_flag = 0 and three_trxns_flag = 0 and risky_institution= 1
 ;
-
+select * from #all_flags_added where trxn_amount_flag = 0 and three_trxns_flag = 0 and risky_institution = 1 ;
+select * from  Transactions where AccountId = 11410999 order by date;
 --- what % add an additional account 
 drop table if exists #accountAddCheck 
 select 
@@ -165,8 +169,8 @@ where userId in (select distinct userId from #swap_ins) order by userId
 select 
 count(distinct userId) 
 from #accountAddCheck 
-where acct_connection_rank = 1
-; -- 213 / 595 = 36%
+where acct_connection_rank > 1
+; -- 113 / 309= 37%
 
 drop table if exists #CAcheck
 select
@@ -183,16 +187,16 @@ on b.userCashAdvanceSubscriptionId = c.userCashAdvanceSubscriptionId
 ;
 
 select 
---count(distinct userCashAdvanceId) 
-count(distinct userId)
+count(distinct userCashAdvanceId) 
+, count(distinct userId)
 from #CAcheck 
---where AdvanceDate >= '2022-12-19'; --28/600 = 5%
+--where AdvanceDate >= '2022-12-19'; --7/309 = 2%
 
 drop table if exists #SubCheck
 select
 distinct a.userId
 , b.userSubscriptionId 
-, b.SubscriptionType
+, b.SubscriptionStatus
 , b.StartDate 
 into #SubCheck
 from #swap_ins a 
@@ -200,4 +204,4 @@ left join userSubscription b
 on a.UserId = b.UserId 
 ;
 
-select * from #subCheck where StartDate >= '2022-12-19' ;
+select SubscriptionStatus, count(distinct UserId) from #SubCheck  where StartDate >= '2022-12-19' group by SubscriptionStatus;
