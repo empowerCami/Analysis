@@ -1,0 +1,574 @@
+
+drop table IF EXISTS #PrimaryCheckingAcctSUCCEED_ACCT_DRIVER
+SELECT 
+*
+--UserId is the joining key
+into #PrimaryCheckingAcctSUCCEED_ACCT_DRIVER
+from [User]
+where PublicToken in (
+ --12/20 SAMPLE
+'e4116652-9d46-451b-8dfc-34dec7c9d132',
+'7f8ce88f-47fa-490b-9605-244829c3be22',
+'81636c1d-3c2f-46b6-a39d-b598daac336e',
+'265c294d-3631-41e5-b3e4-effea5868762',
+'9729b49e-5bbe-40c0-a4c0-afef448ecad7',
+'286a42aa-f512-4139-bbc5-d4bc63ee9416',
+'c3b20a68-4289-4983-be6c-e223accefba6',
+'33ac2931-3dc5-4d75-b9fb-adbe7290d1c1',
+'5263d16d-1515-45b7-a3ff-d7e14ae707cc',
+'5cabe990-fad9-4360-ab36-2368f37eec25',
+'da020a6c-b5e1-471d-b236-03d6df5247fb',
+'9a0fb394-b768-470d-9848-08435ade685b',
+'eff1a3d4-c769-4af0-aa8f-3287a2b614bb',
+'f397b573-62b6-4b2a-9f66-23d326a3324d',
+'2da900eb-9acb-4c01-8abc-c4369e1780c4',
+'79ffe368-cb30-4c43-b477-bb40493d8c3f',
+'983af01a-507c-4d5b-820c-071cf71700c1',
+'8f35aad7-3ad7-43ed-8414-0d87612a1d55',
+'335e5595-a1a0-4918-8f73-fe5d2a4193e9',
+'320a09df-9f05-49e2-87f6-722c437c127c',
+'a4d62cb5-cb84-48b6-b1c5-414e46b2848c',
+'b550c8f4-9d06-49c1-8ad5-191e4759d827',
+'a63c7706-5e52-4e60-8317-e8d9bb5e0d14',
+'e635eadb-1cab-4afb-97fc-8ddeebc7f1f2',
+'03927a3d-ce06-4471-b214-1e03b33b53ed',
+'e1624713-2cee-4f23-9e56-a37e5f148fcb',
+'057b3675-7644-421f-98a7-b366fc734469',
+'98be5f90-bac9-4a1e-95c4-5f8e6301aa6f',
+'160fa6d9-37ec-491f-a8a3-f660ca947684',
+'e5864ac9-8551-4e19-811c-885ddfea2b18',
+'1960ef76-e513-466c-9c06-a3144c44c059',
+'33d9f83f-1569-4a17-ac8a-cc46f50b9e11',
+'b938d93d-e05a-48e3-bbc9-0a6f8c3397c3',
+'62523d93-7ebc-4ca0-8b63-140592f40d7f',
+'5cad5be8-bbce-4de8-be85-4b7efa0e169f',
+'c1d003ce-fcd1-4cab-9d0c-0a2385906c36',
+'3b3aede0-e77f-47d3-bd36-c44bf21c89c1',
+'91999f04-21d6-40cc-8b8e-202126797fc0',
+'54c47391-a5a4-4080-a621-7e35a6f783ea',
+'91acde72-eb63-4dbb-982d-905d278ab6df',
+'680879e3-28f3-4ebf-a2e9-72a3cdfd2c03',
+'52c7c0b2-5e89-405d-b818-ba6099682236',
+'90f4d997-612b-4694-b6f1-59603bd6c4b8',
+'e69d2201-f1ea-436a-954f-85da957b802c',
+'cc667f24-4908-4277-b07d-fd9575116faf',
+'682da94d-63b1-4707-8769-d3977d469a5b',
+'68f483a2-0379-4c57-a39d-d30a6d28640c',
+'f20e6f48-e056-462a-b7d1-bc70d921e58d',
+'461bf854-0a1a-4b81-9a3d-803a9458415c',
+'2444aec5-858b-4589-9e37-7ab6fe8fd477',
+'9d830ed9-6394-4e35-8c9d-9bbda0700355',
+'b450e2c0-a311-4998-94f7-ce6aa0103cd0',
+'e4d7bea4-a913-438d-a532-3aa480cfc763',
+'b21c88a5-d116-4742-a185-51ee38fe3a27',
+'57ad2ad5-b868-4f0f-a5da-28dbe6af1ce5',
+'85bbee8d-d987-45e6-a9b8-a0e2102cefa1',
+'c9e1f094-bcdb-47da-88a6-3813337e9c26',
+'45375c86-5c5c-43e6-8c18-507439552782',
+'3ac895dd-c342-48b8-8419-c5a932cd365d',
+'2bb14874-4848-4922-a055-a163fb92835e',
+'fa3fe568-1975-4b16-aed8-2f09f2040968',
+'a31cd8cd-ced6-412c-a31a-b6d8a9513dfb',
+'d51f4d62-c6a8-441c-985f-8f37defd146c',
+'91b7e2c1-38cf-4c79-a235-c5889954ec11',
+'df65c94c-4528-4ff0-86fa-8aa3a850f521',
+'9b587196-51a8-44d7-a8e4-6c2e92c33edb',
+'e1aa0c79-f66d-4573-b258-8ca5c941f743',
+'6f81c0f8-8e7b-456f-bb80-578134a26ea8',
+'23f4b91d-59ff-49d7-91bc-e605b2754eb6',
+'0e572f5e-0687-44b5-9196-67fc9098d4f6',
+'c6cc22f4-3e15-48ea-9e2e-9886eb088563',
+'9d7c3b1e-91ca-4290-bad7-291d10c5bbd7',
+'3cf9e58f-77f9-48d4-b06b-9b23355a4a0d',
+'8074091f-7aba-4589-95ef-a3de4364f021',
+'a932246d-792b-4554-9ace-8473fb50b06b',
+'614506da-4144-4db3-8b0c-b5f1d844a0f7',
+'e6df1b4f-df02-43e2-b28b-83271a840b67',
+'e6fa65e9-82af-41d1-956b-4cdb6eec9f13',
+'0e7df2bc-f672-42f6-a651-723213a3972b',
+'96eda366-3c3d-40d0-a211-90beac2b99d7',
+'3496aefd-5ca5-412e-b2e9-cf465f253365',
+'991842ca-a18c-43cd-b2ab-e7972af258a1',
+'20357c69-4826-46a5-86a0-8334047616ed',
+'dbe4a90c-0e62-4808-a7d9-8e246be4180a',
+'a6e68e01-0597-45e3-a996-fdbdc7503a5b',
+'b821ea93-aeb2-48c9-92e9-43e4339b7ef7',
+'2172ae9b-839d-47df-b57d-decfd5eb1d80',
+'10a5b3f3-145b-4ec6-8438-4455fcf7b1a1',
+'f4f4ff33-55fd-48b1-9225-2668645c0f24',
+'c4d541dc-314f-4ebb-9e3d-756d2d16f866',
+'dd114a79-e6dc-4f72-b340-445720da87ef',
+'2f9f6433-dc4e-4a71-8b13-e43f5010ef20',
+'76017016-1b90-41ad-a47b-5ff359638bd2',
+'7a636179-14c5-436b-b3c3-779ce9b3fefe',
+'8222a3e5-9ba0-4420-addb-b5c78db27a27',
+'92778f6b-9013-4811-aefb-25492c1fdf5e',
+'04e1203c-ef0e-4c91-81e6-cb0f1d0757cf',
+'c38fcfc9-950c-4be8-a3cd-2b4f19407f69',
+'12ce9f27-1b22-4014-aa0a-26a10f028555',
+'9851b57c-e23b-4229-b880-3c29e1e65f83',
+'fedfa2c8-e976-42e6-a30b-bec97bd6eff2',
+'e0b49993-e7e6-4462-8c0b-9a4d42c71270',
+'5cb95c69-f84a-4b5e-9c68-f48b73d6dedb',
+'98efd62b-fde7-446e-841c-cce6495ac538',
+'dc9c37da-6961-4dbd-9cef-67114526cc0a',
+'b190fefd-e9a5-48ef-b675-7e727df925df',
+'c1bf194e-ea1a-42d5-99cb-76ccb3fa04b9',
+'3079e0d1-1419-4a1a-8614-299f1511c8ee',
+'b067d1e4-02eb-4fb7-9bce-710deacd72b4',
+'5749463e-25f0-4572-8bee-11704104eb84',
+'f878769f-391c-4b43-97a9-4090836c01a1',
+'5defa2af-6ba9-45cd-8a05-683c96de9494',
+'0d4ce548-55ba-4baa-8dab-6a3c90b108a1',
+'84f963aa-6910-42e0-9158-7822c04dead3',
+'74e5de68-0c04-4132-b972-eafed22487aa',
+'10525538-2465-4ba5-89b2-9fdf2fb8691e',
+'fa05d8fa-8393-481a-a38f-a9a4d07123f2',
+'91292f5a-99bc-4451-b0c2-c5e916c275bc',
+'b5b05c46-6a27-4661-ab6f-359acdc5571d',
+'e72af89b-e9cb-4988-b0fa-f931f2681954',
+'c794ef0e-618f-46a9-97c2-4bf2377e8250',
+'9c21c838-a8c0-4b8a-b160-d602db604587',
+'56787b5e-72e3-4762-b94c-f87e5c880ad6',
+'88dc3fa1-6a5d-4795-9383-77fda6c40d6c',
+'3a5e9c30-1959-484e-93ad-dd8e3d39d2f6',
+'925d3132-a7de-48dc-96a6-7532ca30b385',
+'3c13893a-3bf9-4a00-baf3-a0a56e94717b',
+'c3a9c836-5e1c-44b7-9a19-6931d991ed23',
+'2818e0f0-b2f7-4117-b5ef-83b23fadd982',
+'90a59baf-6dfd-4dde-9e1c-8eee7aa16b2c',
+'69799b3a-5d4d-4f69-9852-aaff2702f462',
+'45ce6c02-1f05-4ad3-9444-1f44662e66d9',
+'65d0fd71-7b3a-4619-aa04-d4476da3d3a8',
+'e3eb59f0-9f43-4c62-b893-ce6558b2b89a',
+'ce7003e1-8548-4f4f-9b00-53e2de6427ad',
+'969a54ba-c7e3-40cc-92bd-848d2d626735',
+'0f885ba7-490c-42f5-8478-61465a98d704',
+'301ba6e3-690a-466c-ba9a-3e129df92e8f',
+'e0088459-3a6d-4b18-bf95-766903f62d4c',
+'1a2b9995-47d9-4673-8076-2c97b091e8d5',
+'628e3d08-078e-489e-9eac-b3bd2de978b2',
+'d79ce28f-e4c8-44dc-9de4-a5b63ffdbbb6',
+'ae14fc11-7199-4581-bf8c-755056d84ca9',
+'484b8675-04be-429e-825f-a221b597d729',
+'82c63f0b-d949-484e-8521-70cdb9052220',
+'63942001-6097-4ea8-b427-22b632d085b2',
+'8cace40a-9a57-4333-a1c0-d6b3bedfde3f',
+'cec87b51-f5b5-43f3-8dc3-e41fe9249ccd',
+'dd0c381f-ab90-44bc-836a-f1f7e915d808',
+'d4d9c7bc-2ed2-4212-bac9-27ae3bf9c44b',
+'2f334ab5-4f3d-44e1-a1c5-50ddcaec8701',
+'2b4d8491-5c0d-4715-bf88-a7351f6f33e5',
+'57403251-b405-44fb-a07a-fe8f0e73d2de',
+'07bf4360-abfb-4033-a51c-a9c060522f63',
+'be3c2349-99c0-4b99-a0b5-10dcf1d77025',
+'72819dc4-740c-4f46-9b1d-d1258d4a365f',
+'cad3a730-7006-4aba-b023-78eab4ea748c',
+'0e820154-7020-4d09-8099-52a9a876cc0d',
+'6cea7507-f905-40a4-b4f7-8f046dd859fd',
+'b8e65956-163b-4a13-ab2b-e699ef6ddfb2',
+'e8f9cec0-2eaf-4cf9-91a5-33ee9a6a0300',
+'f625db67-9750-4527-816c-640f2c2f619e',
+'c068bbc1-4f40-41ac-905e-874e070273dc',
+'fe60b1aa-c6c3-4b0a-bad5-9e6534a6d942',
+'151ec7d5-12b8-4c00-8ffd-18c7379e05d7',
+'2d256b02-4a4e-4f80-8801-19b292bd493b',
+'8f35a73e-9bbb-4810-b2e3-fb25f96d8d8a',
+'4d7a8510-1b66-4f95-915a-208140f809a3',
+'bf1c15b7-f77b-4fd9-8c1d-c30083b43dd7',
+'f569cdff-2217-4b02-a0a1-ea4d2d4fee15',
+'2b661ffa-110e-47ff-95b5-55c48a7cfaaa',
+'a8a17f68-002d-4404-96b5-bc9c36402dc9',
+'c6c34c8d-f0db-4092-83a2-b3c67c5d7d42',
+'027cbac2-ef4e-4a2a-a9e3-3172371fea64',
+'a9b98e7a-b0f9-4ca0-bf51-9a50806b1a9f',
+'6b88f786-09ff-4e18-8244-5b63380f6d4d',
+'4eaf9372-2b74-4b09-a7d3-c4c73e57557b',
+'4b377077-4e42-4dd1-a4af-b289f514eb69',
+'ccb128bb-8f07-47e9-8e08-b525c83a3ae6',
+'ef0fb28b-8e86-44da-821c-dd063adb263f',
+'a264e212-55c5-4abe-b294-6614daaad74a',
+'ab214817-cf05-4e25-b537-ad79d90d3f6f',
+'8ce373e5-dd79-4e99-9ac3-667a4251bf23',
+'d559804f-acc8-4bb5-ab2b-ed16a446e5a2',
+'892d6e9f-aacb-4821-86c1-36826b82c83d',
+'59f9ab18-b53d-4d5b-af2a-8b26ff4bd259',
+'9087da31-c422-4ee6-9b4f-a2d37649bb8a',
+'81e2b574-ebd6-4132-a887-f42c91672ab0',
+'9c8c027f-4614-40f2-ba23-7ca355b30778',
+'7fe7d446-0b0b-4a59-a672-0334303e833e',
+'49bad3ab-0deb-4129-9cd1-89e6c711587f',
+'3737b53d-2f34-41cf-9438-78e1eba2e66e',
+'be205dbb-6ebc-4a2e-b3d4-916002e31d2b',
+'f3629cc8-de56-40b7-9af9-95714b30b6fd',
+'1b00dbcd-fe20-4d1c-a359-8eeb3d9073fc',
+'76f00778-f8c2-4396-a455-49159d9b4c09',
+'2e7d3637-6ad4-45f3-95df-3ae63726b5f7',
+'cb988066-b564-408c-992f-2e35a4ea10ce',
+'8b6e90db-cb3c-4ad9-8950-d3ccea441f67',
+'83eba0a1-a5b6-4d5d-9069-465cb3a3cdbb',
+'94c551fb-9eb3-4a22-a981-34decb014d2d',
+'df65ca22-89be-4220-8c48-a104d6a0def9',
+'a3decd2d-07ad-496b-baaa-11b2edd732d8',
+'e7837dad-d7a0-44e0-9b2e-13155da30754',
+'478f211f-ec76-499a-a368-136be0732a80',
+'bac881c5-a135-46cf-b4cc-69c4a35d2c69',
+'b20b7f4e-c785-4e35-b1b4-97066c32b6cb',
+'0afe68ef-d561-4b09-8e9b-21ce363f1e46',
+'9290774a-9d0c-4a08-bb5a-d7e2ee778749',
+'459055e5-db33-4668-b27d-5a92aa3559ae',
+'d88680a6-42e6-4ff6-b720-60b99589da91',
+'1eabe638-6240-4dab-812a-61869e1e5dd7',
+'34dd6624-8d29-4747-8321-4e48d07967a0',
+'571a019f-6736-400b-8358-603d328a1337',
+'fb0810d5-63e2-476e-9e9d-bc96fe504ab3',
+'0b809209-f597-42da-8dee-e51d4a79f51b',
+'a0541baf-d541-4c3d-8869-4f8383fc7046',
+'d9329613-8f03-43af-92d3-5abe035c1144',
+'e0cff137-c8cc-4527-8206-1e7d9066ef33',
+'4e98ef1f-3afc-4d09-aa24-7c0ebeea7703',
+'da8a345f-0e43-4e0f-8c30-d83b4f74d94f',
+'8850704f-4d7e-4263-bb2b-2e1ba3ae18c2',
+'84e07d8d-e2e2-47e7-bdb2-333778a6b619',
+'cc8be8a3-f5af-4c10-a1e2-2a6f6e4d489b',
+'77818b10-1588-4087-95be-28f972b22139',
+'62e6c8fa-1910-4320-8b90-8f54ff88233f',
+'f14cbf62-0cc4-4fcb-be23-f9a76f9ebe7b',
+'ccddcd4d-bdb9-4fe3-84f9-225166e137d1',
+'4501c517-97b5-4581-a1cc-66292cad1f3e',
+'150e085f-9b8f-47ae-8c1d-d9995ab59c87',
+'1a043ca0-d88e-479f-b98b-058391ec680f',
+'a93ccfdc-340e-41eb-ba3b-a151a8dc91d1',
+'aaf272ed-8796-4efa-aabe-f3304f6d0609',
+'9959b8c3-7e90-4ec4-a741-e8056e5b6f35',
+'0866b557-2ca1-4ce3-90ea-95db4be9a38c',
+'df3ba985-b970-4d23-875c-d3dc218269d7',
+'065d9dac-ed54-4d7d-8c88-d8246fe1d9df',
+'5df52964-4edf-40f5-bca2-6db272faecf3',
+'0896d5ad-8e65-4b05-9f19-e7d6e0399512',
+'31f86dfb-34a5-43c4-9a6a-72f406ffcb4c',
+'2d7aec53-7029-44c3-831f-7b376ae95158',
+'e27cbf19-c11f-4e60-9265-afac05263f7c',
+'84bb85a6-acae-4797-a158-db067db4b572',
+'0c46c047-efd4-4b24-bbfa-d962f1ea2a1c',
+'0e069bab-a414-498e-90a2-89dd1fc00540',
+'46afe064-7cb5-4ea1-90f1-e61c351ee7e2',
+'190141ed-da1d-4b35-a214-0325355d6c9a',
+'e9b4d6d8-3a75-49bd-9402-a65917aeacbe',
+'8288cc49-f1bd-46b2-90b0-0e9c599847b8',
+'ed4f9532-4179-4d68-bda9-fd10efd1ef65',
+'0133dece-b4db-41ca-b774-4acecaa4e37c',
+'878d7b40-9372-4626-b667-3dfd281c39a9',
+'fde4e9db-10d6-4ee7-a765-2dd8b0a17b1f',
+'fd883fd9-4f1b-4a00-a113-24152c6c0e1e',
+'0f23eb88-f052-4319-99c3-d58f87f74c73',
+'2f517bf3-8729-4016-9c82-5841a61629fb',
+'e28f4223-ceb2-412f-af01-b3497f27128e',
+'a1ba25c7-9e05-4d17-9e48-e8765640c407',
+'29c1f436-46bc-4441-95bd-1229c30a4b7c',
+'a8b3ed46-3b6c-453a-a767-cda2e0e1678b',
+'a3261dc6-4869-45a0-82fc-66b31f9f521c',
+'23280ab3-b57b-4d17-aa21-319c81ebdac1',
+'97642afc-2a7a-4cb0-b440-011a1775141d',
+'ce5ae455-360c-4f5c-b4ee-287f96c1ae50',
+'a11e5497-37d9-4981-b56d-8c735afc5200',
+'677ec9aa-6860-44a3-8f1d-fc78747328a2',
+'23b6ce80-6370-4786-b606-7966d78f8102',
+'37f6e44f-1956-4783-8721-559345418401',
+'62edafeb-9177-4086-a14b-2e4c006b58ab',
+'854f9f16-b0fe-4dc7-94dc-09d7e59bd813',
+'2f1d601d-e8ab-4e58-be59-381b8bd50caf',
+'5dd7fdf1-5f12-450b-983a-39f2460e5d2c',
+'1de9e081-786a-41fc-bcf8-a73d8038b97a',
+'eeb9b3ac-fd46-40e3-a15b-c8fe8dfc03da',
+'841caa67-3ea6-4df0-8898-b1eba696a62a',
+'d7ba192c-d6f7-4840-84a9-ca6de157edc2',
+'53c2f5fa-23aa-415a-98a4-c5771262e626',
+'544bf2ef-b85e-497c-9549-f5e142166566',
+'0ec4221a-f07d-4037-bbbb-02fddd76bb62',
+'509caf4c-be9c-4552-a5e6-7a840b1c5093',
+'d263dbc5-5dee-418f-a0e9-35fbf8a61a85',
+'6580469d-4729-4d63-99a0-8cb7a809fde6',
+'9240f85f-f707-487a-89b3-0fb1a19a4d5f',
+'63df0b53-7cdd-4b5d-b13c-71afb2343837',
+'e4845afe-6881-4b0a-b293-df5b093cd502',
+'ffdd7d4b-6651-4cc3-8de1-fda7d9c695c2',
+'1d8d0bbe-52d8-4c55-92e6-167343b6ace4',
+'e99475ce-6fe4-4afb-b46c-21b9933c07ae',
+'c14f1848-a9c2-41cc-a878-81f8feae1280',
+'35f83d3a-fc09-4ee2-ad2a-56e4490b01d7',
+'4be5bee0-a074-42b7-b599-a9ea6770c9f6',
+'5afad299-2735-4b18-8061-1c0bfebe2bb3',
+'3686cf30-5359-412a-9212-6a1eb3e4604b',
+'9f80a5ad-443a-4f9a-b7a6-bdedf5ef6eff',
+'8ce3967f-710b-4439-93ec-b8ca9014a87c',
+'b873e798-820c-4542-9f4c-aee5e7d8b4e3',
+'b60ba0d7-b029-4b77-beaf-557a897b6b98',
+'30cb3dbc-e4f7-407f-b59f-c1beb1ed4386',
+'2d37aa60-c756-4af6-9ec7-640f70434bf6',
+'757d8fbe-bf63-40f2-8929-2118a2b7eaf7',
+'de3813df-cbda-4dbc-bb7e-d266ec1c794b',
+'75565a86-2ca5-4dd4-8b5b-927562d135ad',
+'0a81697e-89eb-449e-aef6-f17db7735ae5',
+'ab449587-a86a-4c7f-abeb-4de6112c982d',
+'2d8f6187-4622-433e-b993-e4d5305fe0f3',
+'eb569ee8-23c3-42e9-9b23-b0d8c618a5a0',
+'e3ffd582-6722-4141-b9d4-66308d29c4b3',
+'1ac76fa9-1312-4981-bf60-5577e0b2a701',
+'7bf68dc8-cbb2-4820-843a-6a9522dabc92',
+'711ff070-ab46-43d8-9cac-b3737826e1c0',
+'99759b5c-dcf7-4c88-b520-2fe3bf44ced8',
+'67384dc9-0b7a-41fe-b91e-754a7795244b',
+'a7625316-fd1a-4df0-997d-7ce0fd7b2cf6',
+'a460047f-4eea-41df-8df7-77ee7759a751',
+'a10d813f-4b71-42c4-ae84-7389af43ee19',
+'f384c4f9-18c9-4958-bbb4-1f9ec9477eb6',
+'2e53450b-11c7-4a1e-bd5c-30bf105c983f',
+'01ee6dda-5214-4f18-81ba-398cd61d4b7c',
+'22164449-f736-4a3d-a3a5-60444db825a3',
+'9064b9dd-3eb0-45c0-8f13-e9dcd134be9c',
+'e5746ae1-6c9a-4bb0-9645-997d05923f60',
+'d4187660-0fd8-496b-8550-e84837948ebb',
+'e0e93b71-4e2d-470a-a3a5-b86663bbb395',
+'c9f5fbb5-e8cd-4443-bec7-f9a49afeca57',
+'84ea27d9-e0e4-4fa6-8b00-5578ec964c82',
+'4eae0c5b-373e-4afc-baf8-d644c63424d2',
+'1df8997c-20a5-4f2c-8fa6-166d109712fd',
+'a9d4886a-c32f-4067-8281-d31cf0985450',
+'7fd9fca3-de7a-41b7-8730-5230f820ca73',
+'50f64a63-ab68-41db-8fb5-03cd2a76b005',
+'a351e8f0-c207-4d66-a8cb-1cd351054eb4',
+'76640bc3-dd8c-4560-a6da-4b96cc0a48fe',
+'056fb141-6ff4-43ca-91b4-3e6a8be3acc4',
+'19189b2a-dc59-4ab0-a304-5b25c8de0126',
+'368ca71d-d41e-4997-9d50-731bce9c03e7',
+'1afe3d61-eace-46ab-9da1-43e18eefd6cd',
+'13e3ac78-ef4e-4465-8cd5-a6fe876b2556',
+'a3f252ee-2c9b-454f-8aa7-6296ccd0da7f',
+'e86878d3-0815-4968-8e12-cc682693dc1a',
+'2738c608-d6eb-4219-ae9c-730e616ec20b',
+'6cb7319d-e58e-4f03-afb6-20d95fd23d22',
+'7353cdb7-f32d-46c2-b0d7-7c40e8594d83',
+'39cced5c-ee0d-408b-b371-c6d5d606e6c4',
+'0b06f0a4-600a-47f7-9a5e-63ad2c572a4f',
+'2466ec1c-9ebd-4ed9-8d09-88f6ba8bb452',
+'a3ea2927-f867-4b5f-ac92-b2de89074410',
+'6979bb32-ae08-4aa9-aafc-19d516c38951',
+'65cc0a28-9da5-4a23-af01-9e413bb8eb76',
+'1e69574f-eb25-4379-9b34-6f2f50a0ece8',
+'c861e901-413c-47f0-9006-8002bb2a0d42',
+'8f234506-e1ba-4406-b436-24f5c82d2cfc',
+'fe313d7e-374d-47cf-8983-f2cb08ff8a0b',
+'5b1ccd51-f603-4b85-b304-6d6c90dd44ef',
+'c300b84a-9aac-4f63-9e99-9ef199f75355',
+'9baa3433-eca4-4f4a-8ae9-5399e510b629',
+'b207c316-6e2c-4113-94be-532204858042',
+'9acca04c-c3cd-42cb-ae6e-a7bb6503e36e',
+'8caeed8a-75bc-4f90-8b64-5f039517df77',
+'d906eca9-179c-43c1-850c-9ae92380d031',
+'487eca49-d807-46a5-8422-29da669a7329',
+'b0a4c3ae-e225-4e56-a3a5-cec8db032efc',
+'847d70ae-1893-44a8-b839-2cd5cf62a3d8',
+'a521173a-fb9a-4c56-ad5b-83c53f375122',
+'b4b96289-8d3b-407d-89bf-6e30faf8e6e2',
+'6c532084-37cc-4155-a49b-b0d8919e3e10',
+'0ee09f57-3096-4e3d-a2ce-f44bd519256d',
+'260cea93-8ab8-4915-a1d1-6ebcd5ebd820',
+'8b5cb4f4-bcc6-455a-a41a-ae99f6eedeaa',
+'3905b821-bbca-462f-a865-3dc8f239353b',
+'ca827422-cc58-434a-9ee3-c3ada1c17ee8',
+'803776a0-e546-40b1-b898-80d203f4662d',
+'92b90e21-12a7-4086-ad6e-4b59c85f2092',
+'77055ad9-3782-4c49-acba-74de6340d44e',
+'2fe22140-2b06-4d12-98b3-2d52b8da98ac',
+'05fea032-e82e-47a8-9656-411883721080',
+'0b23a54c-58ac-4c0f-bf94-6256b482d1cf',
+'968e5e8f-1fb0-4797-a31d-91d228f4fc96',
+'202d98e2-1bb9-4d89-aeb4-995e9627ac8a',
+'1259aab8-baaa-4003-a91b-91d70d558ed6',
+'ccf6d250-1ce6-4e41-a43a-c39f62a8810b',
+'735aff06-b40a-46e1-893e-d6e40930d71a',
+'b4a02c48-0799-4afe-89ea-b09968973376',
+'1604f8a3-6c5a-496a-9f11-f5fdc264e7df',
+'7f324ae0-1381-46ea-8c38-1cfed1cb59ba',
+'03046432-d624-476e-9b50-bf259c470493',
+'234228ac-1d22-405a-bbf8-7b897b427e82',
+'41de113d-ff33-49c8-ad22-2ff16ff9d8ae',
+'ec56cba7-21da-4369-b4c1-0ec7ef2a0786',
+'d95ebfc8-7e6b-4e51-a33c-77bf8443937c',
+'56a72b94-e5cd-45b1-aa6c-b4fac87014c3',
+'a93f00cc-ae62-48e4-80b7-42a1bad41472',
+'021c8fbb-9f85-48d8-945e-9cada88cf058',
+'3e933f11-d5d2-449d-88df-e20a6ec7cfee',
+'e9ecde59-9395-4763-b50a-f2a9c83768ce',
+'05b121f8-827a-405a-992f-af146742849a',
+'ac271f50-5ddb-451e-bc80-86a6915f36f9',
+'34f1c95e-3f62-4903-a38a-e30d0a34a11f',
+'eb812d16-80e9-4644-b4c1-aa19d6daf451',
+'c591ed95-f6ec-4e6c-941f-b8e47b1ba708',
+'7aedc8f3-6a80-475a-b3cf-d4c5adc64dad',
+'743ea9ec-2aa5-4ab3-bc5b-6cd355b72065',
+'296d2063-390d-4f21-90bc-aedda04d5af5',
+'054b8887-7b9e-4536-ac0b-3c1766b9ec4e',
+'576f973b-1adc-4600-8566-9b255e493759',
+'af648c30-aa9d-4ff1-8bcb-c60b6fde4c4f',
+'b20cd78a-b684-4f44-8c7b-13aeb7d8fb93',
+'d5ea9f29-4969-444d-8696-b54e0814f64c',
+'a367109f-c18c-406b-bc26-0e73fdea536a',
+'db52d6e5-2d12-41db-b6a9-78ec6bb3be70',
+'92ca9012-ba45-4f4d-af66-05d87f4ea884',
+'56641f7a-ad36-4600-84ef-892d095934f6',
+'37c0edb1-9abf-470b-bd97-69fabcbc2741',
+'c15cfe54-6c98-455b-a400-6394c990b130',
+'38f60f3a-3926-4e39-a5e3-66f36e445433',
+'e94638e7-b042-45ec-b535-916f05d00bb9',
+'791f93a4-608a-44c7-aa51-b78b6fe02a43',
+'a290cc84-ee9c-41bb-91c7-b3d15513c31e',
+'c0e22838-11c4-44bf-938b-9347d9f048bc',
+'92711d57-f829-4702-a9a2-ea0055f043c7',
+'2b605b09-e71b-4a5c-a263-43da81da706b',
+'31ee86ee-eb5d-4067-97ff-be2fa352e8f6',
+'7a1ee459-ba87-421e-b4f7-04974e6cc174',
+'077a892e-54df-4acf-9351-7529b3c89ae5',
+'a79117ec-e12a-48af-9265-450d6102abb0',
+'d28c0ede-fa1e-4c11-ab5c-beec08bc74d7',
+'f880f84e-8e4d-426e-aafb-91674e51e393',
+'d90066be-c1d4-4326-8b6d-6336a2c2823e',
+'4df12363-51f6-43ad-9fed-badd795b611f',
+'7cfabb1a-c677-48c6-b0d5-86e2cddee41a',
+'9888354b-821a-4f71-b21c-6b70bb3ce39c',
+'41beff17-4990-48ee-b463-dc819e7e081a',
+'f096c427-20ae-45f8-b703-021e1aaefa50'
+)
+;
+
+---- monitoring script 12/19
+--- table 1: pull in the account info from accounts created after change 
+drop table if exists #PrimaryCheckingAcctDRIVER
+SELECT 
+distinct a.userId
+, b.InstitutionAccountId
+, b.name
+, c.AccountId 
+, c.AccountType
+, d.HasOAuth
+, b.DateCreated
+into #PrimaryCheckingAcctDRIVER
+from #PrimaryCheckingAcctSUCCEED_ACCT_DRIVER a
+left join dbo.InstitutionAccount b
+on a.userId = b.userId
+left join dbo.Account c 
+on b.InstitutionAccountId = c.InstitutionAccountId
+left join Institution d
+on b.name = d.name
+where c.AccountType = 0 -- 0 = checking account 
+and b.DateCreated >= '2022-12-19' -- change went live evening of 12/19
+;
+--- table 2: add balance info (broken into two tables to manage run time)
+drop table if exists #PrimaryCheckingAcctDRIVER_2
+select 
+a.* 
+, b.balance 
+, b.DateAdded 
+into #PrimaryCheckingAcctDRIVER_2
+from #PrimaryCheckingAcctDRIVER a 
+left join AccountBalance b 
+on a.AccountId = b.AccountId and b.AccountId % 100 = b.AccountMod 
+where 1=1
+and b.DateAdded >= (a.DateCreated - 30) -- looking at balances from 30 days previous to account creation 
+;
+--- table 3: add case stmt logic to flag risky institutions and less than -$350 balance 
+drop table if exists #PrimaryCheckingAcctDRIVER_3
+select 
+*
+, case when name in ('Chime', 'Simple', 'Varo') then 1 else 0 end as risky_institution 
+, case when balance < -350 then 1 else 0 end as sub_neg350_balance
+into #PrimaryCheckingAcctDRIVER_3
+from #PrimaryCheckingAcctDRIVER_2
+; 
+--- table 4: add trxn data (to be cleaned in subsequent tables) -- need to start with a list bc otherwise this takes too long
+drop table if exists #trxns_pre
+select
+a.*
+, c.id as trxn_id
+, c.amount as trxn_amt
+, c.date as trxn_date
+--, c.TransactionId
+into #trxns_pre
+from #PrimaryCheckingAcctDRIVER_3 a
+left join Transactions c
+on a.AccountId = c.AccountId and c.AccountId % 100 = c.AccountMod 
+and c.date >= (a.DateCreated - 30) -- looking at trxns from 30 days previous to account creation 
+;
+--- table 5: rank trxns so you can count them
+drop table if exists #trxns_pre2
+SELECT 
+*
+, row_number() over(partition by UserId, AccountId order by trxn_date desc) as trxn_row_num
+into #trxns_pre2
+from #trxns_pre 
+;
+--- table 6: filter for users that have more than 3 trxns (so we can see who has less ultimately)
+drop table if exists #trxns_pre3
+SELECT 
+*
+into #trxns_pre3
+from #trxns_pre2
+where trxn_row_num >= 3
+;
+-- table 7: create flag
+drop table if exists #trxns_flag_pre
+select 
+distinct userId 
+, 1 as three_trxns_flag
+into #trxns_flag_pre
+from #trxns_pre3
+;
+-- table 8: add flag to table
+drop table if exists #trxns_flag
+select
+a.* 
+, case when b.three_trxns_flag is null then 0 else b.three_trxns_flag end as three_trxns_flag
+into #trxns_flag
+from #PrimaryCheckingAcctDRIVER_3 a 
+left join #trxns_flag_pre b 
+on a.UserId = b.UserId 
+;
+-- select * from #trxns_flag where less_than_three_trxns_flag = 1 ;
+-- select three_trxns_flag, count(distinct userId) from #trxns_flag group by three_trxns_flag ;
+
+drop table if exists #trxns_amount_flag_pre
+select 
+*
+, row_number() over(partition by UserId, AccountId order by trxn_amt desc) as trxn_amt_num
+into #trxns_amount_flag_pre
+from #trxns_pre
+;
+
+drop table if exists #trxns_amount_flag_pre1
+select
+* 
+into #trxns_amount_flag_pre1
+from #trxns_amount_flag_pre 
+where trxn_amt_num = 1 --highest $ trxn
+;
+
+drop table if exists #trxns_amount_flag_pre2
+select 
+distinct userId 
+, 1 as trxn_amount_flag
+into #trxns_amount_flag_pre2
+from #trxns_amount_flag_pre1 
+where trxn_amt > 200 -- checking to see if the trxn is greater than 200 to filter to those that aren't
+;
+
+drop table if exists #all_flags_added
+select 
+a.* 
+, case when b.trxn_amount_flag is null then 0 else b.trxn_amount_flag end as trxn_amount_flag
+
+into #all_flags_added
+from #trxns_flag a
+left join #trxns_amount_flag_pre2 b
+on a.UserId = b.UserId
+;
