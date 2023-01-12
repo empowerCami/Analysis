@@ -104,3 +104,21 @@ on a.UserCreditSummaryId  = f.UserCreditSummaryId
 where 1=1 
 and a.UserCreditSummaryId is not null --capture only those that we have credit data returned for 
 ;
+
+drop table if exists #FICO_cats 
+select 
+*
+, case when FicoScore between 300 and 500 then '< 500'
+when FicoScore between 500 and 549 then '500-549'
+when FicoScore between 550 and 599 then '550-599' 
+when FicoScore >= 600 then '600+'
+else 'No Score' 
+end as fico_cat_50s 
+, floor(FicoScore/10)*10 as fico_cat_10s_base 
+, CONVERT(VARCHAR(7), Loan_CreatedAt, 126) as loan_month
+
+into #FICO_cats 
+from #ThriveBureauDriver_1 
+where 1=1 
+and credit_report_rank = 1 -- filtering to most recent credit report pulled
+;
