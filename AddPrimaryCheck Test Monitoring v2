@@ -1,0 +1,418 @@
+--- checking for China fraud 1/6 -- 54 accounts 
+drop table if exists #PrimaryCheckingAcctDRIVER
+SELECT 
+distinct b.userId
+, b.InstitutionAccountId
+, b.name
+, c.AccountId 
+, c.AccountType
+, d.HasOAuth
+, b.DateCreated
+, z.SubscriptionStatus
+, z.StartDate as sub_start_date
+into #PrimaryCheckingAcctDRIVER
+--from #PrimaryCheckingAcctSUCCEED_ACCT_DRIVER a
+from dbo.InstitutionAccount b
+--left join dbo.InstitutionAccount b
+--on a.userId = b.userId
+left join dbo.Account c 
+on b.InstitutionAccountId = c.InstitutionAccountId
+left join Institution d
+on b.name = d.name 
+left join userSubscription z 
+on b.UserId = z.UserId 
+where 1=1
+and c.AccountType = 0 -- 0 = checking account 
+--and b.name <> 'Empower'
+ and b.DateCreated between '2022-12-19' and '2023-01-06' -- change went live evening of 12/19 , reinstated evening of 1/6
+ and z.StartDate between '2022-12-19' and '2023-01-06' -- initial subs only
+--and z.StartDate between '2022-12-19' and '2022-12-26' -- initial subs only - limited to first week
+;
+
+--select accountType, count(distinct UserId) from #PrimaryCheckingAcctDRIVER group by accountType ;
+-- 1 = savings
+-- 2 = CC 
+-- 3 = loan
+-- 4 = investment
+-- 5 = Cash
+-- 6 = undefined
+-- select 
+-- distinct name 
+-- , count(distinct userId)
+-- from #PrimaryCheckingAcctDRIVER
+-- where 1=1 
+-- and dateCreated > '2022-12-19'
+-- group by name
+
+-- ;
+
+--- table 2: add balance info (broken into two tables to manage run time)
+drop table if exists #PrimaryCheckingAcctDRIVER_2
+select 
+a.* 
+, b.balance 
+, b.DateAdded 
+into #PrimaryCheckingAcctDRIVER_2
+from #PrimaryCheckingAcctDRIVER a 
+left join AccountBalance b 
+on a.AccountId = b.AccountId and b.AccountId % 100 = b.AccountMod 
+where 1=1
+and b.DateAdded >= (a.DateCreated - 30) -- looking at balances from 30 days previous to account creation 
+;
+
+drop table if exists #PrimaryCheckingAcctDRIVER_2_5
+select 
+*
+, row_number() over(partition by UserId, AccountId order by balance desc) as bal_amt_num
+into #PrimaryCheckingAcctDRIVER_2_5 
+from #PrimaryCheckingAcctDRIVER_2 
+order by userId
+, AccountId
+;
+--select * from #PrimaryCheckingAcctDRIVER_2_5;
+--- table 3: add case stmt logic to flag risky institutions and less than -$350 balance 
+drop table if exists #PrimaryCheckingAcctDRIVER_3
+select 
+*
+, case when name in ('Chime', 'Simple', 'Varo') then 1 else 0 end as risky_institution 
+, case when balance < -350 then 1 else 0 end as sub_neg350_balance
+into #PrimaryCheckingAcctDRIVER_3
+from #PrimaryCheckingAcctDRIVER_2_5
+where bal_amt_num = 1 -- highest balance
+; 
+
+
+
+--select * from #PrimaryCheckingAcctDRIVER_2 where userId = 5645451 ;
+
+--- table 4: add trxn data (to be cleaned in subsequent tables) -- need to start with a list bc otherwise this takes too long
+drop table if exists #trxns_pre
+select
+a.*
+, c.id as trxn_id
+, c.amount as trxn_amt
+, c.date as trxn_date
+--, c.TransactionId
+into #trxns_pre
+from #PrimaryCheckingAcctDRIVER_3 a
+left join Transactions c
+on a.AccountId = c.AccountId and c.AccountId % 100 = c.AccountMod 
+and c.date >= (a.DateCreated - 30) -- looking at trxns from 30 days previous to account creation 
+;
+--- table 5: rank trxns so you can count them
+drop table if exists #trxns_pre2
+SELECT 
+*
+, row_number() over(partition by UserId, AccountId order by trxn_date desc) as trxn_row_num
+into #trxns_pre2
+from #trxns_pre 
+;
+
+--- table 6: filter for users that have more than 3 trxns (so we can see who has less ultimately)
+drop table if exists #trxns_pre3
+SELECT 
+*
+into #trxns_pre3
+from #trxns_pre2
+where trxn_row_num >= 3
+;
+-- table 7: create flag
+drop table if exists #trxns_flag_pre
+select 
+distinct userId 
+, 1 as three_trxns_flag
+into #trxns_flag_pre
+from #trxns_pre3
+;
+-- table 8: add flag to table
+drop table if exists #trxns_flag
+select
+a.* 
+, case when b.three_trxns_flag is null then 0 else b.three_trxns_flag end as three_trxns_flag
+into #trxns_flag
+from #PrimaryCheckingAcctDRIVER_3 a 
+left join #trxns_flag_pre b 
+on a.UserId = b.UserId 
+;
+-- select * from #trxns_flag where less_than_three_trxns_flag = 1 ;
+-- select three_trxns_flag, count(distinct userId) from #trxns_flag group by three_trxns_flag ;
+
+drop table if exists #trxns_amount_flag_pre
+select 
+*
+, row_number() over(partition by UserId, AccountId order by trxn_amt desc) as trxn_amt_num
+into #trxns_amount_flag_pre
+from #trxns_pre
+;
+
+drop table if exists #trxns_amount_flag_pre1
+select
+* 
+, trxn_amt as max_trxn_amt
+into #trxns_amount_flag_pre1
+from #trxns_amount_flag_pre 
+where trxn_amt_num = 1 --highest $ trxn
+;
+
+
+drop table if exists #trxns_amount_flag_pre2
+select 
+distinct userId 
+, 1 as trxn_amount_flag 
+into #trxns_amount_flag_pre2
+from #trxns_amount_flag_pre1 
+where trxn_amt > 200 -- checking to see if the trxn is greater than 200 to filter to those that aren't
+;
+
+drop table if exists #all_flags_added
+select 
+a.* 
+, case when b.trxn_amount_flag is null then 0 else b.trxn_amount_flag end as trxn_amount_flag
+into #all_flags_added
+from #trxns_flag a
+left join #trxns_amount_flag_pre2 b
+on a.UserId = b.UserId
+;
+
+
+-- 2245.6
+--select * from #trxns_amount_flag_pre where userId = 5310060 order by trxn_amt_num;
+
+
+
+drop table if exists #swap_ins 
+select 
+distinct userId 
+into #swap_ins 
+from #all_flags_added 
+where 1=1
+and trxn_amount_flag = 0 and three_trxns_flag = 0 and risky_institution= 1 -- SWAP INS
+--and trxn_amount_flag = 1 OR three_trxns_flag = 1 OR risky_institution= 0 --non-swap in
+--and sub_neg350_balance = 1
+; --1875
+
+drop table if exists #filtering_swap_ins
+select 
+*
+, row_number() over(partition by UserId order by DateCreated) as acct_connection_rank 
+into #filtering_swap_ins
+from #all_flags_added 
+where 1=1
+and userId in (select distinct userId from #swap_ins) 
+order by userId 
+;
+
+drop table if exists #swap_ins_FILTERED 
+select 
+a.* 
+, b.max_trxn_amt
+, floor(max_trxn_amt/1)*1 as max_trxn_amt_cat 
+, c.status as fraud_status
+into #swap_ins_FILTERED 
+from #filtering_swap_ins a 
+left join #trxns_amount_flag_pre1 b
+on a.AccountId = b.AccountId
+left join UserReopens c 
+on a.userId = c.userId
+where a.acct_connection_rank = 1 
+and a.risky_institution = 1 
+;
+
+
+select 
+name 
+, max_trxn_amt
+, max_trxn_amt_cat
+, fraud_status 
+, count(distinct userId) as user_count 
+from #swap_ins_FILTERED 
+group by 
+name , max_trxn_amt, max_trxn_amt_cat,  fraud_status ;
+select distinct name from #swap_ins_FILTERED  ;
+select top 100 * from UserReopens ;
+select 
+count(distinct userId)
+-- distinct convert(varchar,DateCreated, 23)
+from #all_flags_added 
+where 1=1
+and trxn_amount_flag = 0 and three_trxns_flag = 0 and risky_institution= 1 
+and subscriptionStatus = 1
+and sub_start_date > '2023-01-07'
+;
+
+
+-- fraud volume 
+select 
+fraud_status 
+, count(distinct userId) 
+from #swap_ins_FILTERED 
+group by fraud_status 
+;
+
+--- volume that opens checking account 
+select 
+institutionType 
+, count(distinct userId)
+from InstitutionAccount
+where userId in (select distinct userId from #swap_ins) 
+group by institutionType 
+;
+select 
+count(distinct userId)
+from InstitutionAccount
+where userId in (select distinct userId from #swap_ins) 
+and institutionType = 13
+and dateCreated between '2022-12-19' and '2023-01-06'
+;
+-- 416 users withEmpowrr checking accts opened in Dec 
+-- 1816 totl 
+
+
+-- 600 have empower checking accts 
+--InstitutionAccount.InstitutionType=13
+
+--732
+-- 2157 (12/19 - 1/5)
+-- total new onboards
+
+-- List needed
+select 
+distinct a.UserId 
+, b.emailAddress 
+-- , b.USERNAME
+from #swap_ins a 
+left join [UserEmails] b -- use userEmails
+on a.userId = b.userId 
+--where b.email <> '' ;
+
+
+-- error check
+drop table if exists #SwapVariableIds
+select 
+distinct userCreditVariableId
+, userId
+into #SwapVariableIds
+from UserCreditVariable 
+where userId in (select distinct userId from #swap_ins)
+and DateGenerated >= '2022-12-19'
+;
+select 
+b.userId
+, a.*
+from UserCashAdvanceEligibility a 
+left join #SwapVariableIds b 
+on a.userCreditVariableId = b.userCreditVariableId
+where a.userCreditVariableId in (select distinct userCreditVariableId from #SwapVariableIds)
+order by userId
+;
+
+drop table if exists #mistake_check
+select 
+*
+, case when totalhistoryindays is null then 1 else 0 end as mistake_flag
+into #mistake_check
+from UserCreditVariableLithium 
+where userId in (select distinct userId from #swap_ins)
+order by userId
+;
+
+drop table if exists #nullData
+select 
+distinct userId 
+into #nullData
+from #mistake_check 
+where mistake_flag = 1 
+;
+
+select count(distinct UserId) from #mistake_check 
+where mistake_flag = 0 
+and userId in (select distinct UserId from #nullData) 
+;
+
+select 
+distinct userId
+, mistake_flag
+
+--, count(distinct UserId) 
+from #mistake_check
+order by userId
+-- group by mistake_flag
+; --2298 
+
+select * from #mistake_check where totalhistoryindays is null ;
+
+
+--- what % add an additional account 
+drop table if exists #accountAddCheck 
+select 
+* 
+, row_number() over(partition by UserId order by DateCreated desc) as acct_connection_rank
+into #accountAddCheck 
+from InstitutionAccount 
+where userId in (select distinct userId from #swap_ins)
+and DateCreated >= '2022-12-19'
+order by userId 
+;
+
+
+
+select 
+count(distinct userId) 
+from #accountAddCheck 
+where acct_connection_rank > 1
+; -- 113 / 309= 37%
+-- 622 / 1945 = 32% 12/19 - 1/3
+-- 278 / 732 = 38% 12/19-12/26
+
+drop table if exists #CAcheck
+select
+distinct a.userId
+, b.userCashAdvanceSubscriptionId 
+, c.userCashAdvanceId
+, c.AdvanceDate
+, c.cashAdvanceStatus
+into #CAcheck
+from #swap_ins a
+left join userCashAdvanceSubscription b 
+on a.UserId = b.UserId
+left join userCashAdvance c 
+on b.userCashAdvanceSubscriptionId = c.userCashAdvanceSubscriptionId 
+where c.AdvanceDate >= '2022-12-19'
+;
+
+SELECT count(distinct userId) FROM #CAcheck ;
+select
+cashAdvanceStatus
+, count(distinct userCashAdvanceId) 
+from #CAcheck 
+where userCashAdvanceId is not null
+group by cashAdvanceStatus
+;
+-- Default : 4/40 = 10% , compare to 525/39918 = 1.3% for defaults for non-swap ins of same time period 
+-- late: 1/40 = 2.5%
+
+select 
+count(distinct userCashAdvanceId) 
+, count(distinct userId)
+from #CAcheck 
+--where AdvanceDate >= '2022-12-19'; --7/309 = 2% 
+-- 99 / 1940 = 5%
+-- 40 / 732 = 5.5% 12/19-12/26
+
+drop table if exists #SubCheck
+select
+distinct a.userId
+, b.userSubscriptionId 
+, b.SubscriptionStatus
+, b.StartDate 
+into #SubCheck
+from #swap_ins a 
+left join userSubscription b 
+on a.UserId = b.UserId 
+;
+select count(*) from #swap_ins ;
+select SubscriptionStatus, count(distinct UserId) from #SubCheck  where StartDate >= '2022-12-19' group by SubscriptionStatus;
+-- 1 active
+-- 2 overdue
+-- 5: closed by user - 135/1940 = 7.0% ; 47/732 = 6.4% ; 4880 / 36162
+-- 8: trial autoclose - 145/1940 = 7.5% ; 51/732 = 7.0%
