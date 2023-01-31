@@ -1,3 +1,5 @@
+-- METHOD 1
+
 drop table if exists #loanDriver
 select 
 distinct a.userId 
@@ -41,4 +43,75 @@ app_month
 , (cast(tot_kyc_started as float) / cast(kyc_denom as float)) as kyc_dropoff 
 from #thrive_caserate_driver2
 order by app_month
+;
+
+--- METHOD 2 
+drop table if exists #loans_kyc_driver 
+select 
+distinct a.userId 
+, a.UserLoanApplicationId
+--, b.userId 
+, a.progress as loan_progress
+, a.CreatedAt as loanApp_timestamp 
+, b.CreatedAt as kyc_timestamp 
+, datediff(week, a.CreatedAt, b.CreatedAt) as loan_kyc_date_diff
+, b.status as kyc_status 
+into #loans_kyc_driver
+from UserLoanApplications a
+left join UserKycs b
+on a.userId = b.userId  
+where 1=1 
+and a.CreatedAt >= '2022-01-01' 
+and a.CreatedAt < b.CreatedAt or b.CreatedAt is null
+--and a.progress >= 6
+order by a.userId 
+;
+
+
+------ UserKycs.status
+-- NotInitiated = 0,
+-- DocumentVerification = 1,
+-- ResubmitAddress = 2,
+-- ResubmitDocument = 3,
+-- Accept = 5,
+-- Review = 6,
+-- Decline = 7,
+-- Reject = 8,
+-- ReviewAccept = 9,
+-- ReviewReject = 10,
+
+drop table if exists #method2_caserate_driver
+select 
+distinct UserLoanApplicationId
+, userId
+, kyc_timestamp
+, loanApp_timestamp 
+, loan_progress
+, convert(varchar(7), loanApp_timestamp , 23) as app_month 
+, kyc_status
+, case when kyc_status in (1,2,3,6,9,10) then 1 else 0 end as cased_ind
+, case when kyc_status in (7,8,10) then 1 else 0 end as kyc_decline_ind
+into #method2_caserate_driver
+from #loans_kyc_driver 
+where kyc_timestamp is not null -- kyc was initiated, there is a record of kyc in the DB
+and loan_kyc_date_diff <= 6 -- time between loan app started and kyc event <= 6 weeks 
+;
+
+drop table if exists #method2_caserate_driver2
+select 
+app_month
+, count(distinct UserLoanApplicationId) as total_apps
+, sum(cased_ind) as cased_apps
+, sum(kyc_decline_ind) as kyc_declined_apps
+into #method2_caserate_driver2
+from #method2_caserate_driver 
+group by app_month 
+order by app_month 
+;
+
+select 
+app_month 
+, (cast(cased_apps as float) / cast(total_apps as float)) as case_rate 
+, (cast(kyc_declined_apps as float) / cast(total_apps as float)) as kyc_declined_rate 
+from #caserate_driver2
 ;
