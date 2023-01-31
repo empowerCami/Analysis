@@ -21,6 +21,7 @@ on a.UserLoanApplicationId = b.UserLoanApplicationId
 order by a.userId
 ;
 
+
 drop table if exists #thrive_caserate_driver
 select 
 app_month 
@@ -31,6 +32,19 @@ app_month
 into #thrive_caserate_driver
 from #loanDriver 
 group by app_month 
+;
+
+
+drop table if exists #thrive_caserate_driver2
+select 
+app_month
+, total_apps
+, tot_kyc_started 
+, tot_kyc_finished
+, tot_kyc_started_beyond
+, (cast(tot_kyc_finished as float) + cast(tot_kyc_started as float)) as kyc_denom 
+into #thrive_caserate_driver2
+from #thrive_caserate_driver 
 ;
 
 select 
