@@ -35,3 +35,5 @@ on a.userSubscriptionID = b.userSubscriptionID
 where 1=1 
 and a.sub_start_month >= '2022-04-01' -- when pause data really comes alive 
 ;
+
+edit edit 
