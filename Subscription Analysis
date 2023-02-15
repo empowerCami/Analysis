@@ -1,3 +1,355 @@
+drop table if exists #sub_driver
+select 
+distinct a.userSubscriptionId 
+, convert(varchar(7), a.startDate , 23) as sub_start_month
+, a.startDate
+, a.endDate
+, convert(varchar(7), a.EndDate , 23) as sub_end_month
+, a.userId 
+, a.subscriptionStatus 
+, case when subscriptionStatus = 0 then 'None'
+when subscriptionStatus = 1 then 'Active'
+when subscriptionStatus = 2 then 'Overdue'
+when subscriptionStatus = 3 then 'Canceled'
+when subscriptionStatus = 4 then 'Delinquent'
+when subscriptionStatus = 5 then 'Closed by User'
+when subscriptionStatus = 6 then 'Closed by Empower'
+when subscriptionStatus = 7 then 'Pending Payment'
+when subscriptionStatus = 8 then 'Trial Autoclose'
+when subscriptionStatus = 9 then 'Subscription Paused'
+end as current_subscriptionStatus
+, a.pausedAt 
+, a.PauseDuration
+, b.userSubscriptionInvoiceId 
+, b.InvoiceDate
+, convert(varchar(7), b.InvoiceDate , 23) as invoice_month 
+, b.attempts 
+, b.invoiceStatus 
+, case when invoiceStatus = 0 then 'Created'
+when invoiceStatus = 1 then 'Pending'
+when invoiceStatus = 2 then 'Settled'
+when invoiceStatus = 3 then 'Overdue'
+when invoiceStatus = 4 then 'Voided'
+when invoiceStatus = 5 then 'Comped by Empower'
+when invoiceStatus = 6 then 'Unpaid'
+end as invoice_status_english
+
+into #sub_driver
+from [UserSubscription] a 
+left join UserSubscriptionInvoice b 
+on a.userSubscriptionID = b.userSubscriptionID
+where a.StartDate between '2022-01-01' and '2022-12-31' 
+;
+
+
+drop table if exists #sub_driver2
+select 
+distinct UserSubscriptionId
+, userId
+, startDate
+, endDate
+, sub_start_month
+, sub_end_month
+, case when current_subscriptionStatus != 'Active' then datediff(month, startDate, endDate) 
+when current_subscriptionStatus = 'Active' then datediff(month, startDate, getDate()) 
+end as sub_length
+, userSubscriptionInvoiceID
+, invoice_month
+, invoice_status_english 
+, current_subscriptionStatus
+, PauseDuration
+, pausedAt 
+, case when subscriptionStatus = 9 or pausedAt is not null then 1 else 0 end as has_paused_ind
+, case when invoiceStatus in (2,5) then 1 else 0 end as paid_invoice_ind -- Settled or Comped
+, row_number() over(partition by UserSubscriptionId order by userSubscriptionInvoiceID asc) as invoiceID_row_num -- order invoices
+, row_number() over(partition by UserSubscriptionId order by invoice_month asc) as invoice_month_row_num -- order invoices
+into #sub_driver2
+from #sub_driver
+order by UserSubscriptionId
+;
+
+
+
+drop table if exists #invoice_paid_count
+select 
+distinct userSubscriptionId
+, sum(paid_invoice_ind) as invoice_paid_count
+, max(invoiceID_row_num) as tot_invoices
+into #invoice_paid_count
+from #sub_driver2
+group by userSubscriptionId 
+;
+
+drop table if exists #sub_driver3
+select 
+a.*
+, b.invoice_paid_count 
+, b.tot_invoices 
+, (cast(b.invoice_paid_count as float) / cast(b.tot_invoices as float)) as pct_paid
+into #sub_driver3
+from #sub_driver2 a
+left join #invoice_paid_count b 
+on a.userSubscriptionId = b.userSubscriptionId
+;
+
+-- reopen ind
+drop table if exists #reopen_flag 
+select 
+distinct userId 
+, createdAt as reopenDate
+, 1 as reopen_ind
+into #reopen_flag
+from userReopens
+where userId in (select distinct userId from #sub_driver3)
+AND isComplete = 1
+;
+
+drop table if exists #sub_driver4
+select 
+a.*
+, b.reopenDate 
+, case when b.reopen_ind is null then 0 else b.reopen_ind end as reopen_ind
+
+into #sub_driver4
+from #sub_driver3 a 
+left join #reopen_flag b 
+on a.userId = b.userId 
+;
+
+-- has checking account 
+drop table if exists #checking_ind
+select 
+distinct userId 
+, 1 as empower_checking_ind 
+into #checking_ind
+from InstitutionAccount
+where 1=1 
+and institutionType = 13
+and userId in (select distinct userId from #sub_driver4) 
+and dateCreated >= '2022-01-01' 
+;
+
+drop table if exists #sub_driver5
+select 
+a.* 
+, case when b.empower_checking_ind = 1 then 1 else 0 end as empower_checking_ind 
+into #sub_driver5
+from #sub_driver4 a
+left join #checking_ind b 
+on a.userId = b.userId 
+;
+
+
+drop table if exists #autosave_ind
+select 
+distinct userId 
+, 1 as autosave_ind 
+into #autosave_ind
+from userAutoSavings
+where 1=1 
+and userId in (select distinct userId from #sub_driver5) 
+and CreatedDate >= '2022-01-01' 
+;
+
+drop table if exists #autosave_delete_ind
+select 
+distinct userId 
+, case when isDeleted = 1 then 1 else 0 end as autoSave_deleted_ind
+into #autosave_delete_ind
+from userAutoSavings
+where 1=1 
+and userId in (select distinct userId from #sub_driver5) 
+and CreatedDate >= '2022-01-01' 
+and isDeleted = 1
+;
+
+drop table if exists #sub_driver6
+select 
+a.* 
+, case when b.autosave_ind  = 1 then 1 else 0 end as autosave_ind 
+, case when c.autoSave_deleted_ind = 1 then 1 else 0 end as autoSave_deleted_ind
+into #sub_driver6
+from #sub_driver5 a
+left join #autosave_ind b 
+on a.userId = b.userId 
+left join #autosave_delete_ind c 
+on a.userId = c.userId 
+;
+-- select top 100 * from UserCreditSummary ;
+-- -- select * from UserAutosavings where userId = 1439054 ;
+-- select top 100 * from #sub_driver6 order by userSubscriptionId, invoice_month;
+-- -- select count(*), count(distinct userSubscriptionInvoiceId) from #sub_driver6 where userSubscriptionInvoiceId is not null ;
+
+-- Add in Thrive/FICO
+drop table if exists #fico_add 
+select 
+distinct userId
+, ficoScore 
+, case when ficoScore  is not null then 1 else 0 end as thrive_ind
+, row_number() over(partition by UserId order by UserCreditSummaryId desc) as fico_rank
+into #fico_add 
+from UserCreditSummary
+where userId in (select distinct UserId from #sub_driver6)
+;
+
+drop table if exists #fico_add_filtered
+select 
+* 
+into #fico_add_filtered
+from #fico_add 
+where 1=1 
+and fico_rank = 1 
+;
+
+drop table if exists #sub_driver7
+select 
+a.* 
+, b.ficoScore 
+, case when b.ficoScore  is not null then 1 else 0 end as thrive_ind
+into #sub_driver7
+from #sub_driver6 a 
+left join #fico_add_filtered b 
+on a.userId = b.userId 
+;
+
+
+-- ADD IN CA INSIGHTS 
+drop table if exists #CA_pre
+select 
+distinct a.UserCashAdvanceSubscriptionId 
+, b.userCashAdvanceId 
+, b.amount 
+, b.AdvanceDate 
+, b.CashAdvanceStatus 
+, case when b.CashAdvanceStatus = 2 then 1 else 0 end as CA_paid_ind
+, c.UserSubscriptionId 
+, c.UserId
+, c.Startdate
+, c.endDate 
+into #CA_pre
+from userCashAdvanceSubscription a
+left join userCashAdvance b 
+on a.UserCashAdvanceSubscriptionId = b.UserCashAdvanceSubscriptionId
+left join #sub_driver7 c 
+on a.userId = c.userId AND (b.AdvanceDate between c.StartDate and c.EndDate)
+where 1=1
+and a.userId in (select distinct userId from #sub_driver7)
+and c.UserSubscriptionId in (select distinct UserSubscriptionId from #sub_driver7)
+and b.AdvanceDate >= c.Startdate 
+and b.RepayDate < getdate()
+;
+
+--- potential issue: dupes due to multiple subs active for a user... 
+--select count(*), count(distinct userCashAdvanceId) from #CA_pre ;
+-- select * from #CA_pre where userCashAdvanceId = 6926032 ;
+-- --- 
+-- select 
+-- UserCashAdvanceId 
+-- , count(*) 
+-- from #CA_pre  
+-- group by UserCashAdvanceId 
+-- having count(*) > 1
+-- ;
+
+drop table if exists #CA_ranked_pre
+select 
+distinct userCashAdvanceId 
+, UserCashAdvanceSubscriptionId 
+into #CA_ranked_pre
+from #CA_pre 
+;
+
+drop table if exists #CA_ranked
+select 
+distinct userCashAdvanceId 
+, UserCashAdvanceSubscriptionId 
+, row_number() over(partition by UserCashAdvanceSubscriptionId order by userCashAdvanceId asc) as CA_row_num_first 
+, row_number() over(partition by UserCashAdvanceSubscriptionId order by userCashAdvanceId desc) as CA_row_num_last 
+into #CA_ranked
+from #CA_ranked_pre
+;
+
+drop table if exists #CA_pre2
+select 
+distinct a.UserSubscriptionId 
+, count(distinct a.userCashAdvanceId) as tot_CA_taken 
+, sum(a.CA_paid_ind) as tot_CA_paid 
+into #CA_pre2 
+from #CA_pre a 
+group by a.UserSubscriptionId
+;
+
+drop table if exists #CA_pre3
+select 
+a.* 
+, b.tot_CA_taken 
+, b.tot_CA_paid 
+, case when b.tot_CA_taken = b.tot_CA_paid then 1 else 0 end as all_CA_paid_ind 
+, c.CA_row_num_first 
+, c.CA_row_num_last 
+into #CA_pre3
+from #CA_pre a 
+left join #CA_pre2 b 
+on a.UserSubscriptionId = b.UserSubscriptionId 
+left join #CA_ranked c 
+on a.userCashAdvanceId = c.userCashAdvanceId 
+;
+
+
+
+drop table if exists #CA_pre4 
+select 
+distinct UserSubscriptionId
+, amount as first_CA_amount 
+into #CA_pre4
+from #CA_pre3
+where 1=1 
+and CA_row_num_first = 1
+;
+
+drop table if exists #CA_pre4_5 
+select 
+distinct UserSubscriptionId
+, amount as last_CA_amount 
+into #CA_pre4_5
+from #CA_pre3
+where 1=1 
+and CA_row_num_last = 1
+;
+
+
+drop table if exists #CA_pre5 
+select 
+distinct UserSubscriptionId
+, max(amount) as max_offer 
+, min(amount) as min_offer
+into #CA_pre5
+from #CA_pre3 
+group by UserSubscriptionId
+;
+
+drop table if exists #CA_final 
+select 
+a.* 
+, b.first_CA_amount 
+, d.last_CA_amount
+, c.max_offer 
+, c.min_offer 
+, (d.last_CA_amount - b.first_CA_amount) as offer_amt_last2first_delta 
+, (c.max_offer - c.min_offer) as offer_amt_max2min_delta 
+into #CA_final
+from #CA_pre3 a 
+left join #CA_pre4 b 
+on a.UserSubscriptionId = b.UserSubscriptionId
+left join #CA_pre4_5 d 
+on a.UserSubscriptionId = d.UserSubscriptionId
+left join #CA_pre5 c 
+on a.UserSubscriptionId = c.UserSubscriptionId 
+;
+
+
+
+--- combined with CA
 drop table if exists #sub_analysis_driver 
 select 
 distinct a.userSubscriptionID
@@ -36,4 +388,36 @@ where 1=1
 and a.sub_start_month >= '2022-04-01' -- when pause data really comes alive 
 ;
 
-edit edit 
+drop table if exists #reopen_1 
+select 
+distinct UserId
+into #reopen_1 
+from #sub_analysis_driver 
+where sub_start_month between '2022-05-01' and '2022-07-31'
+;
+drop table if exists #reopen_2
+select 
+distinct userId 
+, userSubscriptionId 
+, row_number() over(partition by UserId order by userSubscriptionId asc) as sub_rank
+into #reopen_2
+from userSubscription 
+where userId in (select distinct userId from #reopen_1)
+;
+drop table if exists #reopen_3 
+select 
+* 
+, 1 as new_reopen_flag 
+into #reopen_3 
+from #reopen_2 
+where sub_rank >= 2 
+;
+
+drop table if exists #reopen_4 
+select 
+* 
+into #reopen_4 
+from userSubscription 
+where userId in (select userId from #reopen_3)
+order by userId
+;
