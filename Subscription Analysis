@@ -1,0 +1,37 @@
+drop table if exists #sub_analysis_driver 
+select 
+distinct a.userSubscriptionID
+, a.userId 
+, a.sub_start_month  
+, a.sub_end_month
+, a.StartDate 
+, a.endDate 
+, a.sub_length
+, a.current_subscriptionStatus 
+, a.has_paused_ind 
+, a.invoice_paid_count 
+, a.tot_invoices 
+, a.pct_paid 
+, case when a.pct_paid > 0.75 then 1 else 0 end as pct_paid_76_plus_ind
+, a.reopen_ind 
+, a.empower_checking_ind 
+, a.autosave_ind 
+, a.autosave_deleted_ind
+, a.thrive_ind 
+, a.ficoScore
+, b.tot_CA_taken 
+, b.tot_CA_paid 
+, b.all_CA_paid_ind 
+, b.first_CA_amount 
+, b.last_CA_amount 
+, b.max_offer 
+, b.min_offer
+, b.offer_amt_last2first_delta 
+, b.offer_amt_max2min_delta 
+into #sub_analysis_driver 
+from #sub_driver7 a 
+left join #CA_final b 
+on a.userSubscriptionID = b.userSubscriptionID
+where 1=1 
+and a.sub_start_month >= '2022-04-01' -- when pause data really comes alive 
+;
