@@ -1,0 +1,73 @@
+--- grab a base of potentially eligible accounts  
+      drop table CLI_1;
+      create table CLI_1 as (
+      select 
+      distinct l.id as loan_id 
+      , l.external_id
+      , l.status 
+      , snap.is_overdue
+      , snap.overdue_balance_total_amount
+      , snap.credit_limit
+      , snap.last_successful_payment_effective_date 
+      from loans l 
+      inner join snapshots snap 
+      on l.id = snap.loan_id  and snap.effective_date = '2023-03-22' -- day after last due date 
+      where 1=1 
+      and l.status in ('Active')
+      and type = 'lineOfCredit'
+      and snap.is_overdue = 'false'
+      and snap.paid_total_amount > 0 -- have made payments before last due date 
+      and snap.overdue_balance_total_amount = 0 
+      ); 
+
+      ---grab most recent due date for those loans
+      drop table due_dates;
+      create table due_dates as(
+      select 
+      distinct a.loan_schedule_id as linking_id 
+      , a.due_date
+      , row_number() over(partition by b.loan_id order by a.due_date desc) as due_date_rank 
+      , b.id 
+      , b.loan_id
+      , stmt.statement_date 
+      , stmt.minimum_amount_due 
+      , stmt.total_payments_for_this_period
+      , stmt.total_purchases_for_this_period
+      from loan_periods a 
+      inner join loan_schedules b 
+      on a.loan_schedule_id = b.id
+      inner join statements stmt 
+      on b.loan_id = stmt.loan_id and a.statement_date = stmt.statement_date
+      where b.loan_id in (select distinct loan_id from CLI_1)
+      and due_date < current_date -- looking at due date that just passed
+      );
+      
+    
+      drop table list_at_duedate;
+      create table list_at_duedate as(
+      select 
+      distinct a.loan_id 
+      , a.external_id 
+      , a.status 
+      , a.is_overdue 
+      , a.credit_limit 
+      , a.last_successful_payment_effective_date
+      , b.due_date 
+      , b.statement_date
+      , b.minimum_amount_due 
+      , b.total_payments_for_this_period
+      , b.total_purchases_for_this_period
+      , c.is_overdue as current_is_overdue
+      from CLI_1 a 
+      left join due_dates b 
+      on a.loan_id = b.loan_id 
+      left join snapshots c 
+      on a.loan_id = c.loan_id and c.effective_date = current_date - 1
+      where 1=1 
+      and due_date_rank = 1
+      and c.is_overdue = 'false' -- check that no overdue in time since due date check 
+      and a.last_successful_payment_effective_date > b.due_date - 30 -- payment behavior within stmt period
+      and b.total_purchases_for_this_period > 0 -- they had balance from the period being analyzed 
+      );
+      
+      select * from list_at_duedate;
