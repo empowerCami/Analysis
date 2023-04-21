@@ -1,33 +1,41 @@
-drop table if exists #LoansDriver 
+drop table if exists #LoansAppDriver 
 select 
-* 
-, RANK() OVER(PARTITION BY userId ORDER BY CreatedAt DESC) AS loan_rank -- rank = 1 pulls most recent 
-into #LoansDriver
-from Loans 
+a.* 
+, b.[status] as ThriveStatus
+, b.creditAmount 
+, b.createdAt as Loan_CreatedAt
+, b.AutoPay
+, RANK() OVER(PARTITION BY a.userId ORDER BY a.CreatedAt DESC) AS loan_app_rank -- rank = 1 pulls most recent 
+into #LoansAppDriver
+from UserLoanApplications a 
+left join loans b 
+on a.UserLoanApplicationId = b.UserLoanApplicationId
 ;
 
 drop table if exists #MostRecentLoan 
 select 
 * 
 into #MostRecentLoan
-from #LoansDriver 
-where loan_rank = 1 
+from #LoansAppDriver 
+where loan_app_rank = 1 
 ;
 
---select * from #LoansDriver order by userId, loan_rank ;
 
 drop table if exists #ThriveBureauDriver_1
 select 
-distinct g.userID 
+distinct g.userLoanApplicationId 
+, g.[status] as app_status
+, g.userID 
 , g.CreditAmount as ThriveLine 
-, g.Status as ThriveStatus 
+, g.ThriveStatus 
 , g.AutoPay as ThriveAutoPayStatus
-, g.CreatedAt as Loan_CreatedAt
-, RANK() OVER(PARTITION BY g.userId ORDER BY a.UserCreditSummaryId DESC) AS credit_report_rank -- 1 = most recent credit report pull 
+, g.Loan_CreatedAt
+, g.UserCreditModelId
+, RANK() OVER(PARTITION BY g.userId ORDER BY z.UserCreditSummaryId DESC) AS credit_report_rank -- 1 = most recent credit report pull 
 
-, a.UserCreditSummaryId 
-, convert(varchar, a.CreatedAt, 23) as CreatedAt
-, a.FicoScore 
+, z.UserCreditSummaryId 
+, convert(varchar, z.CreatedAt, 23) as CreatedAt
+, z.FicoScore 
 
 , DATEDIFF(month, c.Date, c.CreatedAt) as months_since_last_DQ 
 , c.AccountRating as DQAccountRating_enum
@@ -88,22 +96,25 @@ end as DQAccountRating
 into #ThriveBureauDriver_1
 
 from #MostRecentLoan g 
-left join UserCreditSummary a
+left join UserCreditReports a
 on g.UserId = a.UserId 
+left join UserCreditSummary z 
+on a.UserCreditReportId = z.UserCreditReportId 
 left join UserCreditSummaryInstallmentAmount b 
-on a.UserCreditSummaryId  = b.UserCreditSummaryId 
+on z.UserCreditSummaryId  = b.UserCreditSummaryId 
 left join UserCreditSummaryMostRecentDelinquency c 
-on a.UserCreditSummaryId  = c.UserCreditSummaryId 
+on z.UserCreditSummaryId  = c.UserCreditSummaryId 
 left join UserCreditSummaryRecordCounts d 
-on a.UserCreditSummaryId  = d.UserCreditSummaryId 
+on z.UserCreditSummaryId  = d.UserCreditSummaryId 
 left join UserCreditSummaryRevolvingAmount e 
-on a.UserCreditSummaryId  = e.UserCreditSummaryId 
+on z.UserCreditSummaryId  = e.UserCreditSummaryId 
 left join UserCreditSummaryTotalAmount f 
-on a.UserCreditSummaryId  = f.UserCreditSummaryId 
+on z.UserCreditSummaryId  = f.UserCreditSummaryId 
 
 where 1=1 
-and a.UserCreditSummaryId is not null --capture only those that we have credit data returned for 
+and z.UserCreditSummaryId is not null
 ;
+
 
 drop table if exists #FICO_cats 
 select 
@@ -122,3 +133,42 @@ from #ThriveBureauDriver_1
 where 1=1 
 and credit_report_rank = 1 -- filtering to most recent credit report pulled
 ;
+
+drop table if exists #TU_plus_modelScore
+SELECT
+a.*,
+m.DateGenerated,
+m.UserCreditVariableId,
+FIRST_VALUE(m.DateGenerated) OVER(PARTITION BY a.UserId, Loan_CreatedAt ORDER BY m.DateGenerated DESC) AS DateGenerated_last,
+b.Score
+into #TU_plus_modelScore
+from #FICO_cats a 
+
+left join UserCreditModel m
+on a.userCreditModelId = m.userCreditModelId 
+and m.DateGenerated < Loan_CreatedAt
+and m.DateGenerated > DATEADD(Day,-1,Loan_CreatedAt)
+
+left join (select UserCreditVariableId, Score			
+	from UserCreditVariableMLScore with (nolock)
+	where (modelType = 1)
+	) b 
+on m.UserCreditVariableId = b.UserCreditVariableId 
+
+;
+
+
+select 
+* 
+, round(Score, 2) as model_score_rounded 
+, case when floor(Score/0.01)*0.01 = 0 then '(0-0.01)'
+when floor(Score/0.01)*0.01 = 0.01 then '[0.01-0.02)'
+when floor(Score/0.01)*0.01 = 0.02 then '[0.02-0.03)'
+when floor(Score/0.01)*0.01 = 0.03 then '[0.03-0.04)'
+when floor(Score/0.01)*0.01 = 0.04 then '[0.04-0.05)'
+when floor(Score/0.01)*0.01 between 0.05 and 0.1 then '[0.05-0.10]'
+when floor(Score/0.01)*0.01 > 0.1 then '0.11+'
+end as model_score_category
+from #TU_plus_modelScore 
+where 1=1 
+and DateGenerated = DateGenerated_last
