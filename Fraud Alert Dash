@@ -1,0 +1,49 @@
+drop table if exists #FA_monitoring_starter
+select 
+distinct a.userCreditReportId
+, b.userId
+, convert(varchar, a.createdAt, 23) as credit_report_pulled_date
+, convert(varchar(7), a.createdAt, 23) as credit_report_pulled_month
+, case when a.[type] = 1 then 1 else 0 end as extended_alert_ind 
+, case when a.[type] = 2 then 1 else 0 end as initial_alert_ind 
+, case when a.[type] <> 0 then 1 else 0 end as alert_ind 
+, case when a.[status] = 0 then 1 else 0 end as remediated_ind 
+, case when a.[status] = 1 then 1 else 0 end as agent_UNremediated_ind 
+, case when a.[type] <> 0 and a.statusReason in (3) then 1 else 0 end as agent_remediated_ind 
+, case when a.[type] <> 0 and a.statusReason in (3) OR  a.[status] = 1 then 1 else 0 end as agent_involved_ind 
+, case when a.[type] <> 0 and a.[status] = 0 and a.statusReason = 0 then 1 else 0 end as auto_resolve_ind 
+into #FA_monitoring_starter
+from userCreditReportFraudAlert a 
+left join userCreditReports b
+on a.userCreditReportId = b.userCreditReportId
+;
+
+
+select * from userCreditReportFraudAlert where [status] = 0 and [type] > 0 ;
+-- select distinct statusReason from userCreditReportFraudAlert -- 3 = support and by phone, 2 = is automatic; unremediated means support has it 
+-- select * from userCreditReportFraudAlert where [type] <> 0 
+
+select 
+credit_report_pulled_month
+, credit_report_pulled_date
+, extended_alert_ind 
+, initial_alert_ind 
+, alert_ind 
+, remediated_ind 
+, agent_UNremediated_ind 
+, agent_remediated_ind 
+, agent_involved_ind 
+, auto_resolve_ind 
+, count(distinct userId) as tot_users
+from #FA_monitoring_starter 
+group by credit_report_pulled_month
+, credit_report_pulled_date
+, extended_alert_ind 
+, initial_alert_ind 
+, alert_ind 
+, remediated_ind 
+, agent_UNremediated_ind 
+, agent_remediated_ind 
+, agent_involved_ind 
+, auto_resolve_ind 
+;
