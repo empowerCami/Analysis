@@ -1,0 +1,342 @@
+
+----- rank order apps to most recent and then just pull that one 
+drop table if exists #driver 
+select 
+distinct userId 
+, userLoanApplicationId 
+, [status]
+, createdAt
+, row_number() over(partition by UserId order by createdAt desc) as app_row_num
+into #driver
+from userLoanApplications
+where 1=1 
+and createdAt >= '2023-04-01' -- since expansion 
+order by userId
+;
+
+drop table if exists #driver_most_recent_app
+select 
+* 
+into #driver_most_recent_app
+from #driver 
+where 1=1 
+and app_row_num = 1 --most recent
+;
+
+drop table if exists #decline_user_starter 
+select 
+distinct a.userId 
+, a.createdAt
+, a.[status]
+, convert(varchar, a.createdAt, 23) as app_date
+, a.[status] as app_status
+into #decline_user_starter 
+from #driver_most_recent_app a 
+where 1=1 
+and [status] = 0 -- most recent app is declined only 
+--and a.userId not in (select distinct userId from loans where [status] = 1) -- making sure to exclude users with an active account
+;
+
+drop table if exists #sub_ranked 
+select 
+distinct b.userId
+, b.subscriptionStatus 
+, b.startDate
+, b.ModifiedAt
+, row_number() over(partition by b.UserId order by b.startDate desc) as sub_row_num -- most recent sub
+into #sub_ranked 
+from userSubscription b 
+left join #decline_user_starter c 
+on b.userId = c.userId
+where b.userId in (select distinct userId from #decline_user_starter)
+and b.startDate < c.createdAt -- only looking at subs started before the app in question 
+;
+
+drop table if exists #sub_added_declines
+select 
+distinct a.userId 
+, convert(varchar, a.createdAt, 23) as app_date
+, b.subscriptionStatus
+, a.[status] as app_status
+, b.StartDate as sub_start_date_dateformat
+, b.ModifiedAt as sub_modify_date_dateformat
+, convert(varchar, b.StartDate, 23) as sub_start_date
+, convert(varchar, b.ModifiedAt, 23) as sub_modify_date
+, datediff(month, b.StartDate, getdate()) as sub_length
+, case when b.subscriptionStatus in (5, 8) then datediff(day, a.createdAt, b.ModifiedAt) else null end as app_to_sub_update_delta
+, case when b.subscriptionStatus in (5, 8) then 1 else 0 end as churn_ind 
+into #sub_added_declines
+from #decline_user_starter a 
+left join #sub_ranked b 
+on a.userId = b.userId and sub_row_num = 1 
+where 1=1 
+and subscriptionStatus <> 6 -- exclude those we closed (closed by empower)
+;
+
+--- check if they opened a new sub after closing the one active with the application 
+drop table if exists #sub_post_churn_check 
+select 
+distinct a.userId
+, a.subscriptionStatus 
+, a.startDate
+, a.ModifiedAt
+, 1 as new_sub_post_churn
+into #sub_post_churn_check 
+from userSubscription a
+left join #sub_added_declines b 
+on a.userId = b.userId
+where 1=1
+and a.userId in (select distinct userId from #sub_added_declines)
+and a.startDate > b.sub_start_date_dateformat
+;
+
+----- BASIC DRIVER HERE (no CA elig or model score taken into account)
+drop table if exists #sub_churn_thrive_declines_driver
+select 
+a.*
+, case when b.new_sub_post_churn = 1 then 1 else 0 end as new_sub_post_churn 
+, b.startDate as new_sub_post_churn_start_date
+into #sub_churn_thrive_declines_driver
+from #sub_added_declines a 
+left join #sub_post_churn_check b 
+on a.userId = b.userId 
+;
+
+
+drop table if exists #decline_CAelig_starter
+select 
+distinct
+userId 
+, userCreditVariableId  
+, row_number() over(partition by UserId order by DateGenerated desc) as cv_rank
+into #decline_CAelig_starter
+from userCreditVariable 
+where 1=1 
+and userId in (select distinct userId from #sub_added_declines)
+and DateGenerated >= '2023-03-30'
+;
+
+drop table if exists #decline_CAelig_starter2
+select 
+distinct
+userId 
+, userCreditVariableId 
+into #decline_CAelig_starter2
+from #decline_CAelig_starter
+where 1=1 
+--and cv_rank = 1
+;
+
+drop table if exists #decline_CAelig_starter3
+select 
+distinct a.userId 
+--, a.userCreditVariableId 
+, max(b.amountEligible) as highest_amountEligible -- taking max eligible (vs most recent)
+-- , b.amountEligible
+-- , case when b.amountEligible > 0 then 1 else 0 end as eligible_ind 
+into #decline_CAelig_starter3
+from #decline_CAelig_starter2 a
+left join userCashAdvanceEligibility b
+on a.userCreditVariableId = b.userCreditVariableId 
+group by a.userId 
+--, a.userCreditVariableId 
+;
+
+
+--- table for dash (just declines) 
+drop table if exists #thrive_decline_cohort_churn_analysis
+select 
+distinct a.userId
+, a.subscriptionStatus
+, a.sub_length
+, a.churn_ind 
+, convert(varchar(7), a.sub_start_date_dateformat, 23) as sub_start_month 
+, a.new_sub_post_churn 
+, datediff(month, sub_modify_date_dateformat, new_sub_post_churn_start_date) as months_btwn_subs
+, case when b.highest_amountEligible > 0 then 1 else 0 end as eligible_ind 
+, b.highest_amountEligible
+, 'thrive decline' as cohort
+-- , count(distinct a.userId) as tot_users 
+into #thrive_decline_cohort_churn_analysis
+from #sub_churn_thrive_declines_driver a 
+left join #decline_CAelig_starter3 b 
+on a.userId = b.userId
+-- group by a.subscriptionStatus
+-- , a.sub_length
+-- , a.churn_ind 
+-- , a.new_sub_post_churn 
+-- , datediff(month, sub_modify_date_dateformat, new_sub_post_churn_start_date)
+-- , b.highest_amountEligible
+;
+
+--- TO COMPARE
+-- 12 month look back 
+------------------------
+-- baseline pop 
+------------------------
+drop table if exists #baseline_starter
+select 
+distinct b.userId
+, b.subscriptionStatus 
+, b.startDate
+, datediff(month, b.StartDate, getdate()) as sub_length
+, b.ModifiedAt
+, row_number() over(partition by b.UserId order by b.startDate desc) as sub_row_num
+into #baseline_starter
+from userSubscription b 
+where b.startDate >= '2022-04-01' 
+;
+
+drop table if exists #baseline_starter2
+select 
+*
+, case when subscriptionStatus in (5, 8) and ModifiedAt >= '2023-04-01' then 1 else 0 end as churned_AFTER_thrive_expansion_ind
+, case when subscriptionStatus in (5, 8) and ModifiedAt < '2023-04-01' then 1 else 0 end as churned_before_thrive_expansion_ind
+into #baseline_starter2
+from #baseline_starter
+where 1=1 
+and sub_row_num = 1
+;
+
+drop table if exists #baseline_starter3
+select 
+* 
+into #baseline_starter3
+from #baseline_starter2 
+where churned_before_thrive_expansion_ind = 0 -- remove users that churned before apr 2023
+;
+-- cv starter so we can grab most recent cv
+drop table if exists #baseline_starter4
+select 
+distinct
+userId 
+, userCreditVariableId  
+--, row_number() over(partition by UserId order by DateGenerated desc) as cv_rank
+into #baseline_starter4
+from userCreditVariable 
+where 1=1 
+and userId in (select distinct userId from #baseline_starter3)
+and DateGenerated >= '2023-03-30'
+;
+
+drop table if exists #baseline_starter5
+select 
+distinct
+userId 
+, userCreditVariableId 
+into #baseline_starter5
+from #baseline_starter4
+where 1=1 
+--and cv_rank = 1
+;
+
+drop table if exists #baseline_starter6
+select 
+distinct a.userId 
+--, a.userCreditVariableId 
+, max(b.amountEligible) as highest_amountEligible
+--, b.amountEligible
+--, case when b.amountEligible > 0 then 1 else 0 end as eligible_ind 
+into #baseline_starter6
+from #baseline_starter5 a
+left join userCashAdvanceEligibility b
+on a.userCreditVariableId = b.userCreditVariableId 
+group by userId 
+;
+
+-- drop table if exists #sub_post_churn_check_baseline --- doesn't really work here bc there is no reference date (for declines we look at subs before app compared to post)
+-- select 
+-- distinct a.userId
+-- , a.subscriptionStatus 
+-- , a.startDate as new_start
+-- , a.ModifiedAt as new_mod
+-- , b.startDate as old_start
+-- , b.ModifiedAt as old_mod
+-- , datediff(month, b.ModifiedAt, a.startDate) as months_btwn_subs
+-- , 1 as new_sub_post_churn
+-- into #sub_post_churn_check_baseline
+-- from userSubscription a
+-- left join #baseline_starter3 b 
+-- on a.userId = b.userId
+-- where 1=1
+-- and a.userId in (select distinct userId from #baseline_starter3)
+-- and a.startDate > b.ModifiedAt
+-- and churned_AFTER_thrive_expansion_ind = 1
+-- ;
+
+
+---- DRIVER FOR BASELINE POP
+drop table if exists #baseline_pop
+select 
+distinct a.userId 
+, a.sub_length 
+, a.subscriptionStatus 
+, a.churned_AFTER_thrive_expansion_ind as churn_ind
+, a.startDate 
+, convert(varchar, a.StartDate, 23) as sub_start_date
+, convert(varchar(7), a.StartDate, 23) as sub_start_month
+, b.highest_amountEligible
+, case when b.highest_amountEligible > 0 then 1 else 0 end as eligible_ind 
+, null as new_sub_post_churn -- making null until i can figure out a better way to caputre this
+, null as months_btwn_subs -- making null until i can figure out a better way to caputre this
+, 'baseline popualtion' as cohort
+into #baseline_pop
+from  #baseline_starter3 a 
+left join #baseline_starter6 b 
+on a.userId = b.userId 
+-- left join #sub_post_churn_check_baseline c -- making null until i can figure out a better way to caputre this
+-- on a.userId = c.userId 
+where 1=1 
+and a.userId not in (select distinct userId from userLoanApplications)
+and a.subscriptionStatus <> 6
+;
+
+--------------------
+---- BIG DRIVER ----
+--------------------
+
+drop table if exists #churn_dash_driver 
+select 
+a.* 
+into #churn_dash_driver
+from #thrive_decline_cohort_churn_analysis a 
+
+union 
+
+select 
+b.userId 
+, b.subscriptionStatus 
+, b.sub_length 
+, b.churn_ind 
+, b.sub_start_month 
+, b.new_sub_post_churn 
+, b.months_btwn_subs 
+, b.eligible_ind 
+, b.highest_amountEligible 
+, b.cohort
+from #baseline_pop b
+;
+
+-- query 
+select 
+subscriptionStatus 
+, sub_length 
+, churn_ind 
+, sub_start_month 
+, new_sub_post_churn 
+, months_btwn_subs 
+, eligible_ind 
+, highest_amountEligible 
+, cohort
+, count(distinct userId) as tot_users 
+from #churn_dash_driver 
+group by subscriptionStatus 
+, sub_length 
+, churn_ind 
+, sub_start_month 
+, new_sub_post_churn 
+, months_btwn_subs 
+, eligible_ind 
+, highest_amountEligible 
+, cohort
+;
