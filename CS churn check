@@ -1,0 +1,86 @@
+drop table if exists #cs_driver 
+select 
+distinct a.userId
+, a.createdAtUtc as offer_date
+, case when b.status = 0 then 'Initiated'
+when b.status = 1 then 'Succeeded'
+when b.status = 2 then 'Failed'
+end as enrollment_status_str
+, row_number() over(partition by b.userCreditScoreProfileId order by b.CreatedAtUtc desc) as action_rank
+into #cs_driver 
+from UserCreditScoreOffers a 
+left join userCreditScoreProfiles c 
+on a.userId = c.userId 
+left join userCreditScoreProfileActions b 
+on c.userCreditScoreProfileId = b.userCreditScoreProfileId
+where 1=1 
+and a.createdAtUtc between '2023-05-05' and '2023-05-12'
+;
+
+
+drop table if exists #cleanup 
+select 
+distinct userId 
+, offer_date 
+, case when enrollment_status_str is null then 'did not attempt' else enrollment_status_str end as enrollment_status
+into #cleanup
+from #cs_driver  
+where 1=1
+and action_rank = 1 OR enrollment_status_str is null 
+;
+
+
+drop table if exists #sub_ranked 
+select 
+distinct b.userId
+, b.subscriptionStatus 
+, b.startDate
+, b.ModifiedAt
+, row_number() over(partition by b.UserId order by b.startDate desc) as sub_row_num -- most recent sub
+into #sub_ranked 
+from userSubscription b 
+where b.userId in (select distinct userId from #cleanup ) 
+;
+
+drop table if exists #final_cs_driver
+select 
+distinct a.userId 
+, a.enrollment_status
+, b.subscriptionStatus 
+, b.startDate
+, convert(varchar, startDate, 23) as start_date_varchar
+, 1 as cs_offered_ind
+, case when b.subscriptionStatus in (5, 8) then 1 else 0 end as churn_ind 
+into #final_cs_driver
+from #cleanup a 
+left join #sub_ranked b 
+on a.userId = b.userId and sub_row_num = 1
+where 1=1 
+and b.StartDate >= '2023-05-01'
+;
+
+
+drop table if exists #no_cs_driver
+select 
+distinct userId 
+, 'n/a' as enrollment_status 
+, subscriptionStatus 
+, startDate
+, convert(varchar, startDate, 23) as start_date_varchar
+, 0 as cs_offered_ind
+, case when subscriptionStatus in (5, 8) then 1 else 0 end as churn_ind 
+into #no_cs_driver
+from userSubscription 
+where 1=1 
+and StartDate between '2023-05-01' and '2023-05-12'
+and userId not in (select distinct userId from UserCreditScoreOffers)
+;
+
+select 
+a.* 
+from #final_cs_driver a 
+union 
+select 
+b.*
+from #no_cs_driver b
+;
