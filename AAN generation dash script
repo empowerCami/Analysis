@@ -1,0 +1,82 @@
+---- AAN DASH
+drop table if exists #deniedApplications;
+SELECT ULA.*
+into #deniedApplications
+FROM UserLoanApplications ULA
+-- INNER JOIN Loans UL ON ULA.UserLoanApplicationId=UL.UserLoanApplicationId
+WHERE DATEDIFF(day,ULA.CreatedAt,GETDATE())>30
+AND ULA.Status IN (0,1,2);  -- denied, created, incomplete
+
+drop table if exists #adverseActionNotices;
+SELECT LD.CreatedAt,ULAD.UserLoanAPplicationId
+into #adverseActionNotices 
+FROM UserLoanApplicationDisclosures ULAD
+INNER JOIN LoanDisclosures LD ON ULAD.LoanDisclosureId=LD.LoanDisclosureId
+WHERE DocumentType=2;
+
+
+drop table if exists #noticeOfIncomplete;
+SELECT LD.CreatedAt,ULAD.UserLoanAPplicationId
+into #noticeOfIncomplete
+FROM UserLoanApplicationDisclosures ULAD
+INNER JOIN LoanDisclosures LD ON ULAD.LoanDisclosureId=LD.LoanDisclosureId
+WHERE DocumentType=1;
+
+drop table if exists #applicationDenialReasons;
+SELECT * 
+into #applicationDenialReasons
+FROM UserLoanApplicationDenialReasons;
+
+drop table if exists #dash_table
+SELECT #deniedApplications.UserLoanApplicationId,
+CASE WHEN [Rule] =  1 THEN 'AccountHistory'
+WHEN [Rule] = 13 THEN 'AccountStatus'
+WHEN [Rule] =  6 THEN 'BalanceCushion'
+WHEN [Rule] =  0 THEN 'CashAdvanceRepaymentHistory'
+WHEN [Rule] =  9 THEN 'CreditFreeze'
+WHEN [Rule] =  3 THEN 'CurrentAccountBalance'
+WHEN [Rule] = 11 THEN 'IncompletedIn30DaysWindow'
+WHEN [Rule] =  8 THEN 'Kyc'
+WHEN [Rule] =  7 THEN 'LendingResidential'
+WHEN [Rule] = 10 THEN 'MLA'
+WHEN [Rule] = 12 THEN 'MLModelScore'
+WHEN [Rule] =  5 THEN 'MonthlyIncome'
+WHEN [Rule] =  4 THEN 'RecurringPaychecks'
+WHEN [Rule] =  2 THEN 'TransactionFrequency' end as RuleCopy,
+CASE WHEN Progress = 0 THEN 'Declined'
+WHEN Progress =  1 THEN 'RepaidCashAdvanceCheckStarted'
+WHEN Progress =  2 THEN 'RepaidCashAdvanceCheckFinished'
+WHEN Progress =  3 THEN 'CreditModelCheckStarted'
+WHEN Progress =  4 THEN 'CreditModelCheckFinished'
+WHEN Progress =  5 THEN 'SubmitCreditModelToFinWise'
+WHEN Progress =  6 THEN 'FullKycStarted'
+WHEN Progress =  7 THEN 'FullKycFinished'
+WHEN Progress =  8 THEN 'CreditReportCheckStarted'
+WHEN Progress =  9 THEN 'CreditReportHitFreeze'
+WHEN Progress = 10 THEN 'CreditReportCheckFinished'
+WHEN Progress = 11 THEN 'AddressDiscrepancyStarted'
+WHEN Progress = 12 THEN 'AddressDiscrepancyHit'
+WHEN Progress = 13 THEN 'AddressDiscrepancyFinished'
+WHEN Progress = 14 THEN 'OfferGenerated'
+WHEN Progress = 15 THEN 'OfferAccepted'
+WHEN Progress = 16 THEN 'LoanAgreementCreated'
+WHEN Progress = 17 THEN 'LoanAgreementSigned'
+WHEN Progress = 18 THEN 'UserLoanCreated'
+WHEN Progress = 19 THEN 'LoanCreatedInFinWise' 
+WHEN Progress = 20 THEN 'CreditReportFraudAlertCheckStarted'
+WHEN Progress = 21 THEN 'CreditReportFraudAlertUnremediated'
+WHEN Progress = 22 THEN 'CreditReportFraudAlertCheckFinished'
+end as ApplicationProgress,
+#deniedApplications.UserId,
+[Rule] as DenialReason,
+CASE when #deniedApplications.Status=0 then 'Denied' when  #deniedApplications.Status=1 then 'Created' when  #deniedApplications.Status=2 then 'Incomplete' end as ApplicationStatus,
+#adverseActionNotices.CreatedAt as aanDate,#deniedApplications.CreatedAt as applicationDate,
+DATEDIFF(day,#deniedApplications.CreatedAt,#adverseActionNotices.CreatedAt) as daysToGenerateAan,
+#noticeOfIncomplete.CreatedAt as noiaDate,
+DATEDIFF(day,#deniedApplications.CreatedAt,#noticeOfIncomplete.CreatedAt) as daysToGenerateNoia
+into #dash_table
+FROM #deniedApplications 
+LEFT JOIN #adverseActionNotices ON #deniedApplications.UserLoanApplicationId=#adverseActionNotices.UserLoanApplicationId
+LEFT JOIN #noticeOfIncomplete ON #deniedApplications.UserLoanApplicationId=#noticeOfIncomplete.UserLoanApplicationId
+lEFT JOIN #applicationDenialReasons ON #deniedApplications.UserLoanApplicationId=#applicationDenialReasons.UserLoanApplicationId
+;
