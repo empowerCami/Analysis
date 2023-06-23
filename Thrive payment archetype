@@ -1,0 +1,132 @@
+drop table if exists #payment_type_prep
+select 
+distinct loanId
+, loanPaymentId 
+, case when paymentType = 0 then 'AutoPay'
+when paymentType = 1 then 'Manual'
+when paymentType = 2 then 'NextPaycheck'
+when paymentType = 3 then 'SplitInTwo'
+end as payment_type_str 
+, scheduledAmount 
+, case when status = 0 then 'Scheduled'
+when status = 1 then 'Pending'
+when status = 2 then 'Paid'
+when status = 3 then 'Late'
+when status = 4 then 'Failed'
+when status = 5 then 'UserCancelled'
+when status = 6 then 'SystemCancelled'
+when status = 7 then 'InFlight'
+end as status_str 
+, scheduledDate 
+, CreatedAt
+, UpdatedAt
+into #payment_type_prep
+from loanPayments 
+where 1=1 
+and loanId in (select distinct loanId from loans where version = 2 and createdAt between '2023-04-01' and '2023-04-30')
+and status in (2)
+;
+
+
+drop table if exists #total_payment_type_count
+select 
+distinct loanId 
+, count(distinct loanPaymentId) as tot_payments
+into #total_payment_type_count
+from #payment_type_prep
+group by loanId 
+;
+
+drop table if exists #payment_type_count_manual
+select 
+distinct loanId 
+, payment_type_str 
+, count(distinct loanPaymentId) as tot_payments_by_type 
+into #payment_type_count_manual
+from #payment_type_prep
+where 1=1 
+and payment_type_str = 'Manual'
+group by loanId 
+, payment_type_str 
+;
+
+drop table if exists #payment_type_count_next
+select 
+distinct loanId 
+, payment_type_str 
+, count(distinct loanPaymentId) as tot_payments_by_type 
+into #payment_type_count_next
+from #payment_type_prep
+where 1=1 
+and payment_type_str = 'NextPaycheck'
+group by loanId 
+, payment_type_str 
+;
+
+drop table if exists #payment_type_count_split
+select 
+distinct loanId 
+, payment_type_str 
+, count(distinct loanPaymentId) as tot_payments_by_type 
+into #payment_type_count_split
+from #payment_type_prep
+where 1=1 
+and payment_type_str = 'SplitInTwo'
+group by loanId 
+, payment_type_str 
+;
+
+drop table if exists #payment_type_count_auto
+select 
+distinct loanId 
+, payment_type_str 
+, count(distinct loanPaymentId) as tot_payments_by_type 
+into #payment_type_count_auto
+from #payment_type_prep
+where 1=1 
+and payment_type_str = 'AutoPay'
+group by loanId 
+, payment_type_str 
+;
+
+drop table if exists #loan_by_pmt_count
+select 
+distinct a.loanId 
+, b.tot_payments 
+, case when c.tot_payments_by_type is null then 0 else c.tot_payments_by_type end as tot_manual 
+, case when d.tot_payments_by_type is null then 0 else d.tot_payments_by_type end as tot_next 
+, case when e.tot_payments_by_type is null then 0 else e.tot_payments_by_type end as tot_split 
+, case when f.tot_payments_by_type is null then 0 else f.tot_payments_by_type end as tot_auto 
+into #loan_by_pmt_count
+from #payment_type_prep a 
+left join #total_payment_type_count b 
+on a.loanId = b.loanId 
+left join #payment_type_count_manual c 
+on a.loanId = c.loanId 
+left join #payment_type_count_next d 
+on a.loanId = d.loanId 
+left join #payment_type_count_split e
+on a.loanId = e.loanId 
+left join #payment_type_count_auto f
+on a.loanId = f.loanId 
+;
+
+drop table if exists #loan_by_pmt_pctg
+select 
+*
+, (tot_manual*1.0/tot_payments) as pct_manual
+, ((tot_next+tot_split)*1.0/tot_payments) as pct_scheduled 
+, (tot_auto*1.0/tot_payments) as pct_auto
+into #loan_by_pmt_pctg
+from #loan_by_pmt_count
+;
+
+select 
+* 
+, case when pct_manual >= 0.8 then 'Mostly manual'
+when pct_scheduled >= 0.8 then 'Mostly scheduled'
+when pct_auto >= 0.8 then 'Mostly auto' 
+else 'Mixed'
+end as pmt_archetype 
+from #loan_by_pmt_pctg
+;
