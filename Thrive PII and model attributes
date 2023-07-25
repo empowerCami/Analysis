@@ -1,0 +1,50 @@
+select 
+l.loanId 
+, l.userId as userId_
+, u.firstName 
+, u.lastName 
+, u.DateOfBirth 
+, u.SocialSecurityNumber 
+, u.userName as phoneNumber 
+, e.emailAddress
+, u.email
+, a.AddressLine1 
+, a.AddressLine2 
+, a.city
+, a.state 
+, a.zip 
+, c.userCreditModelId 
+, cm.accountAge 
+, cm.AccountBalance 
+, cm.AccountHistory 
+, cm.MonthlyIncome 
+, cm.TransactionFrequency
+, cm.BalanceCushion 
+, cm.NumRecurringPaychecks 
+, cm.AmountRecurringPaychecks
+, ucv.*
+, draw.loanDrawId 
+, draw.amount as draw_amount 
+, draw.fee as draw_fee
+, draw.createdAt as draw_createdAt 
+, pmt.loanPaymentId 
+, pmt.UpdatedAt as pmt_date
+
+--, ucv.MLModelScore 
+from loans l 
+left join [user] u 
+on l.userId = u.userId
+left join userAddresses a 
+on u.userId = a.userId and a.[Primary] = 1
+left join userEmails e 
+on u.userId = e.userId and e.isPrimary = 1
+left join userLoanApplications c 
+on l.userloanApplicationId = c.userloanApplicationId 
+left join userCreditModel cm 
+on c.userCreditModelId = cm.userCreditModelId 
+left join userCreditVariableHelium ucv 
+on cm.userCreditVariableId = ucv.userCreditVariableId
+left join loanDraws draw 
+on l.loanId = draw.loanId and draw.status = 2
+where 1=1 
+and l.loanId in (13950)
