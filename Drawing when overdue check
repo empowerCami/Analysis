@@ -1,0 +1,90 @@
+
+drop table #first_dq_date_pre
+select 
+distinct loc_id_prod 
+, date
+, row_number() over(partition by loc_id_prod order by Date asc) as date_rank
+into #first_dq_date_pre
+from #overdue_starter 
+where overdue_number_days = 1
+;
+
+
+drop table #first_dq_date
+select 
+distinct loc_id_prod 
+, date as first_dq_date
+into #first_dq_date
+from #first_dq_date_pre
+where date_rank = 1
+;
+
+drop table #second_dq_date
+select 
+distinct loc_id_prod 
+, date as second_dq_date
+into #second_dq_date
+from #first_dq_date_pre
+where date_rank = 2
+;
+
+drop table #max_pre
+select 
+distinct a.loc_id_prod 
+, max(a.overdue_number_days) as max_overdue_count
+into #max_pre
+from #overdue_starter a 
+left join #second_dq_date b 
+on a.loc_id_prod = b.loc_id_prod 
+where a.date < b.second_dq_date
+group by a.loc_id_prod 
+;
+
+drop table #last_dq_date
+select 
+distinct a.loc_id_prod 
+, a.[date] as last_dq_date_1
+, a.overdue_number_days
+into #last_dq_date
+from #overdue_starter a
+left join #max_pre b 
+on a.loc_id_prod = b.loc_id_prod 
+left join #second_dq_date d
+on a.loc_id_prod = d.loc_id_prod 
+where 1=1
+and a.overdue_number_days = b.max_overdue_count
+and a.date < d.second_dq_date
+;
+ 
+drop table #overdue_driver
+select 
+distinct a.loc_id_prod 
+, a.first_dq_date
+, b.last_dq_date_1
+, z.second_dq_date
+, c.max_overdue_count
+, datediff(day, a.first_dq_date, b.last_dq_date_1) as date_diff
+into #overdue_driver
+from #first_dq_date a 
+left join #last_dq_date b 
+on a.loc_id_prod = b.loc_id_prod 
+left join #max_pre c
+on a.loc_id_prod = c.loc_id_prod 
+left join #second_dq_date z
+on a.loc_id_prod = z.loc_id_prod 
+;
+
+select 
+a.loandrawId 
+, a.amount 
+, a.fee 
+, a.createdAt 
+, a.status 
+, b.*
+
+--count(distinct loanId)
+from matillion.prod_loanDraws a 
+left join #overdue_driver b
+on a.loanId = b.loc_id_prod 
+where loanId in (select distinct loc_id_prod from #overdue_driver)
+and a.createdAt between b.first_dq_date and b.last_dq_date_1 
