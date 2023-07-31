@@ -1,0 +1,29 @@
+select 
+distinct loandrawId 
+, loanId 
+, amount
+, case when deliveryType = 2 then 1 else 0 end as instant_ind 
+, fee 
+, a.createdAt
+-- , b.limit_amount_usd as CL
+, convert(varchar(7), a.createdAt, 23) as draw_month
+, case when amount < 200 then 'a. <200'
+when amount between 200 and 249.99 then 'b. 200-249'
+when amount between 250 and 299.99 then 'c. 250-299'
+when amount between 300 and 349.99 then 'd. 300-349'
+when amount between 350 and 399.99 then 'e. 350-399'
+when amount between 400 and 449.99 then 'f. 400-449'
+when amount between 450 and 499.99 then 'g. 450-499'
+when amount between 500 and 549.99 then 'h. 500-549'
+when amount between 550 and 599.99 then 'i. 550-599'
+when amount >= 600 then 'j. 600+'
+end as draw_cat
+
+--into #draw_base 
+from matillion.prod_loanDraws a 
+-- left join dbt_jason.thrive_loc_core b 
+-- on a.loanid = b.loc_id_prod
+where 1=1 
+--and createdAt >= '2023-04-01'
+and a.createdAt between '2023-06-01' and '2023-07-30'
+;
