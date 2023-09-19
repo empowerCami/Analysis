@@ -1,0 +1,57 @@
+drop table if exists #auth_monitoring_starter
+select 
+distinct loans.userId
+, loans.loanId
+, loans.createdAt as loan_open_date
+, a.institutionAccountId
+, a.productsConnected 
+, a.name 
+, case when a.productsConnected like '%auth%' then 1 else 0 end as auth_ind
+, b.accountId as account_accountId
+, b.lastUpdated as account_lastUpdated_date
+, c.accountId as sub_accountId
+, d.monitoringAccountId 
+into #auth_monitoring_starter
+from loans loans 
+left join InstitutionAccount a
+on loans.userId = a.userId 
+left join account b 
+on a.institutionAccountId = b.institutionAccountId 
+left join userSubscription c 
+on b.accountId = c.accountId 
+left join UserCashAdvanceSubscription d 
+on loans.userId = d.userId 
+where 1=1 
+and loans.status in (1,2)
+order by userId
+;
+
+drop table if exists #auth_monitoring2 
+select 
+* 
+, case when account_accountId = monitoringAccountId then 1 else 0 end as monitoring_acct_ind 
+, case when account_accountId = sub_AccountId then 1 else 0 end as sub_acct_ind 
+, case when account_accountId = monitoringAccountId and account_accountId = sub_AccountId then 1 else 0 end as all_acct_ind 
+into #auth_monitoring2 
+from #auth_monitoring_starter
+;
+
+select 
+auth_ind 
+, count(distinct userId) as tot_user
+from #auth_monitoring2 
+where  monitoring_acct_ind = 1 
+group by auth_ind 
+;
+
+-- pull of no auth accounts with active loans (can see last updated time for account)
+select 
+* 
+from #auth_monitoring2 
+where monitoring_acct_ind = 1  
+and auth_ind = 0 
+and [name] not like 'Empower' -- filter out empower accounts 
+; 
+
+-- what is the account id in userSubscription again? 
+-- does PAS in thrive app update monitoring account in ca sub table? 
