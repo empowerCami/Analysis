@@ -1,0 +1,53 @@
+drop table #loanDrawStarter
+select 
+distinct loanDrawId 
+, loanId 
+, amount 
+, deliveryType 
+, case when deliveryType = 0 then 'ACH'
+when deliveryType = 1 then 'Empower'
+when deliveryType = 2 then 'Stripe'
+when deliveryType = 3 then 'CorePro'
+when deliveryType = 5 then 'RTP'
+end as deliveryType_txt
+, createdAt 
+, 1 as rank_partition
+, cast(createdAt AS date) as createdAt_date
+, convert(varchar(10), createdAt) as drawCreatedDate 
+, datepart(week, createdAt) as draw_week
+into #loanDrawStarter
+from matillion.prod_loanDraws a 
+where 1=1 
+and createdAt >= (getDate() - 60)
+;
+
+drop table #loanDraw2
+select 
+a.*
+, d.day_of_week_name
+, case when d.day_of_week_name in ('Friday', 'Saturday', 'Sunday') then 1 else 0 end as weekend_ind 
+into #loanDraw2
+from #loanDrawStarter a
+left join dbt_jason.calendar d 
+on a.createdAt_date = d.date
+;
+
+
+
+select 
+deliveryType 
+, deliveryType_txt 
+, createdAt_date 
+, draw_week 
+, day_of_week_name 
+, weekend_ind 
+, count(distinct loanDrawId) as tot_draws 
+, sum(amount) as sum_drawAmount 
+from #loanDraw2 
+group by deliveryType 
+, deliveryType_txt 
+, createdAt_date 
+, draw_week 
+, day_of_week_name 
+, weekend_ind 
+;
