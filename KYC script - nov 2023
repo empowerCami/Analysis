@@ -1,0 +1,199 @@
+drop table if exists #kycStarter
+select 
+a.* 
+, app.createdAt as application_date
+, b.createdAt as kycCreatedAt
+, c.createdAtUTC as KycRecordDate
+, b.status as overall_status
+, case when b.status = 0 then 'NotInitiated'
+when b.status = 1 then 'DocumentVerification'
+when b.status = 2 then 'ResubmitAddress'
+when b.status = 3 then 'ResubmitDocument'
+when b.status = 4 then 'SubmitSecondaryDocument'
+when b.status = 5 then 'Accept'
+when b.status = 6 then 'Review'
+when b.status = 7 then 'Decline'
+when b.status = 8 then 'Reject'
+when b.status = 9 then 'ReviewAccept'
+when b.status = 10 then 'ReviewReject'
+end as status_str
+, b.userId 
+, b.declineReason
+, c.userKycActionResultId
+, c.originator 
+, c.status as userKycActionResult_Status
+, case when c.status = 0 then 'Accept'
+when c.status = 1 then 'Review'
+when c.status = 2 then 'Resubmit'
+when  c.status = 3 then 'Refer'
+when c.status = 4 then 'Reject'
+end as userKycActionResult_Status_str
+, c.SocureReferenceId
+, d.module 
+, d.reasonCode 
+, z.module as module_score 
+, z.name 
+, z.version 
+, z.score 
+into #kycStarter
+from userKycUserLoanApplication a 
+left join userKycs b 
+on a.userKycId = b.userKycId 
+left join userKycActionResults c 
+on a.userKycId = c.userKycId 
+left join userKycActionResultReasons d
+on c.userKycActionResultId = d.userKycActionResultId
+left join userKycActionResultScore z 
+on c.userKycActionResultId = z.userKycActionResultId
+left join userLoanApplications app 
+on a.UserLoanApplicationId = app.UserLoanApplicationId 
+where 1=1 
+--and app.userId in (select distinct userId from #amp_users) 
+and app.userId = 6743202
+--and c.createdAtUTC > '2023-09-05' --'2023-07-28'
+and c.Originator = 0 --- THRIVE ONLY 
+;
+
+drop table if exists #reasons1
+SELECT userKycActionResultId , module, 
+       STRING_AGG(ReasonCode, ', ') AS unique_codes
+into #reasons1
+FROM (
+    SELECT DISTINCT userKycActionResultId , module, ReasonCode
+    FROM #kycStarter
+) AS subquery
+GROUP BY userKycActionResultId , module;
+
+drop table if exists #scores1
+SELECT userKycActionResultId , module_score, 
+       STRING_AGG(Score, ', ') AS score
+into #scores1
+FROM (
+    SELECT DISTINCT userKycActionResultId , module_score, Score
+    FROM #kycStarter
+) AS subquery
+GROUP BY userKycActionResultId , module_score
+order by userKycActionResultId;
+
+
+
+--- REASONS
+drop table if exists #fraudCodes
+select distinct userKycActionResultId, unique_codes as FraudReasonCodes into #fraudCodes from #reasons1 where module = 'Fraud';
+drop table if exists #PhoneRiskCodes
+select distinct userKycActionResultId, unique_codes as PhoneRiskReasonCodes into #PhoneRiskCodes from #reasons1 where module = 'PhoneRisk';
+drop table if exists #GlobalWatchlistCodes
+select distinct userKycActionResultId, unique_codes as GlobalWatchlistReasonCodes into #GlobalWatchlistCodes from #reasons1 where module = 'GlobalWatchlist';
+drop table if exists #DocVCodes
+select distinct userKycActionResultId, unique_codes as DocVReasonCodes into #DocVCodes from #reasons1 where module = 'DocumentVerification';
+drop table if exists #KYCCodes
+select distinct userKycActionResultId, unique_codes as KYCReasonCodes into #KYCCodes from #reasons1 where module = 'Kyc';
+drop table if exists #AddressRiskCodes
+select distinct userKycActionResultId, unique_codes as AddressRiskReasonCodes into #AddressRiskCodes from #reasons1 where module = 'AddressRisk';
+drop table if exists #AlertListCodes
+select distinct userKycActionResultId, unique_codes as AlertListReasonCodes into #AlertListCodes from #reasons1 where module = 'AlertList';
+drop table if exists #EmailRiskCodes
+select distinct userKycActionResultId, unique_codes as EmailRiskReasonCodes into #EmailRiskCodes from #reasons1 where module = 'EmailRisk';
+
+--- SCORES
+drop table if exists #fraudScore
+select distinct userKycActionResultId, score as FraudScore into #fraudScore from #scores1 where module_score = 'Fraud';
+drop table if exists #PhoneRiskScore
+select distinct userKycActionResultId, score as PhoneRiskScore into #PhoneRiskScore from #scores1 where module_score = 'PhoneRisk';
+drop table if exists #KYCScore
+select distinct userKycActionResultId, score as KYCScore into #KYCScore from #scores1 where module_score = 'Kyc';
+drop table if exists #AddressRiskScore
+select distinct userKycActionResultId, score as AddressRiskScore into #AddressRiskScore from #scores1 where module_score = 'AddressRisk';
+drop table if exists #EmailRiskScore
+select distinct userKycActionResultId, score as EmailRiskScore into #EmailRiskScore from #scores1 where module_score = 'EmailRisk';
+drop table if exists #SyntheticScore
+select distinct userKycActionResultId, score as SyntheticScore into #SyntheticScore from #scores1 where module_score = 'Synthetic';
+
+
+drop table if exists #ThriveKycMaster
+select 
+distinct a.userKycUserLoanApplicationId
+, a.userKycId
+, a.userloanApplicationId 
+, a.userId 
+, a.originator
+, a.overall_status 
+, a.status_str as overall_status_str 
+, case when a.overall_status in (1,2,3,4,6,9,10) then 1 else 0 end as stepup_ind 
+, case when a.overall_status in (7,8,10) then 1 else 0 end as kyc_declined_ind
+
+, a.kycCreatedAt 
+, a.KycRecordDate
+, convert(varchar, application_date, 23) as app_date
+, convert(varchar(7), application_date, 23) as app_month
+, datepart(week, application_date) as app_week
+, a.userKycActionResultId 
+, a.userKycActionResult_status 
+, case when a.userKycActionResult_Status in (1,2,3) then 1 else 0 end as stepup_ind2
+, case when a.userKycActionResult_Status in (4) then 1 else 0 end as kyc_decline_ind2
+, case when a.userKycActionResult_Status in (1,2,3,4) then 1 else 0 end as friction_ind
+
+, a.socureReferenceId 
+, s.SyntheticScore
+--, case when s.SyntheticScore < 0.95 then round(s.SyntheticScore, 1) else s.SyntheticScore end as SyntheticScore_rounded
+, b.FraudReasonCodes
+, bs.FraudScore
+--, case when bs.FraudScore < 0.95 then round(bs.FraudScore, 1) else bs.FraudScore end as FraudScore_rounded
+, c.PhoneRiskReasonCodes
+, cs.PhoneRiskScore
+--, case when cs.PhoneRiskScore < 0.95 then round(cs.PhoneRiskScore, 1) else cs.PhoneRiskScore end as PhoneRiskScore_rounded
+, d.GlobalWatchlistReasonCodes
+, e.DocVReasonCodes
+, f.KYCReasonCodes
+, fs.KYCScore
+--, case when fs.KYCScore < 0.95 then round(fs.KYCScore, 1) else fs.KYCScore end as KYCScore_rounded
+, g.AddressRiskReasonCodes
+, gs.AddressRiskScore
+--, case when gs.AddressRiskScore < 0.95 then round(gs.AddressRiskScore, 1) else gs.AddressRiskScore end as AddressRiskScore_rounded
+, h.AlertListReasonCodes
+, i.EmailRiskReasonCodes
+, iss.EmailRiskScore
+--, case when iss.EmailRiskScore < 0.95 then round(iss.EmailRiskScore, 1) else iss.EmailRiskScore end as EmailRiskScore_rounded
+into #ThriveKycMaster
+from #kycStarter a 
+left join #fraudCodes b
+on a.userKycActionResultId = b.userKycActionResultId
+left join #PhoneRiskCodes c
+on a.userKycActionResultId = c.userKycActionResultId
+left join #GlobalWatchlistCodes d
+on a.userKycActionResultId = d.userKycActionResultId
+left join #DocVCodes e
+on a.userKycActionResultId = e.userKycActionResultId
+left join #KYCCodes f
+on a.userKycActionResultId = f.userKycActionResultId
+left join #AddressRiskCodes g
+on a.userKycActionResultId = g.userKycActionResultId
+left join #AlertListCodes h
+on a.userKycActionResultId = h.userKycActionResultId
+left join #EmailRiskCodes i
+on a.userKycActionResultId = i.userKycActionResultId
+
+left join #FraudScore bs
+on a.userKycActionResultId = bs.userKycActionResultId
+left join #PhoneRiskScore cs
+on a.userKycActionResultId = cs.userKycActionResultId
+left join #KYCScore fs
+on a.userKycActionResultId = fs.userKycActionResultId
+left join #AddressRiskScore gs
+on a.userKycActionResultId = gs.userKycActionResultId
+left join #EmailRiskScore iss
+on a.userKycActionResultId = iss.userKycActionResultId
+left join #SyntheticScore s
+on a.userKycActionResultId = s.userKycActionResultId
+order by a.kycCreatedAt desc
+;
+
+
+
+drop table if exists #ThriveKycMaster2
+select 
+* 
+, row_number() over(partition by UserLoanApplicationId order by userKycActionResultId asc) as row_num
+into #ThriveKycMaster2
+from #ThriveKycMaster 
+;
