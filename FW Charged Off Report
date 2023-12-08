@@ -1,0 +1,142 @@
+--- CHARGE OFF REPORT 
+drop table #fw_charge_off_driver;
+select 
+distinct a.loc_id_finwise 
+, a.loc_id_peach 
+, a.loc_id_prod
+, CONCAT(b.firstname, ' ', b.lastname) as borrower_name
+, a.limit_amount_usd as loan_amount 
+, case when c.chargeoffstatus = 0 then 'None'
+when c.chargeoffstatus = 1 then 'Not sent to  third party collections'
+when c.chargeoffstatus = 2 then 'Sent to third party collections'
+when c.chargeoffstatus = 3 then 'Chargeoff paid off'
+end as collection_status 
+, a.originated_at as origination_date
+, a.last_successful_payment_effective_date as most_recent_payment_date
+, a.overdue_balance_total_usd as past_due_balance 
+, a.charged_off_principal_usd
+, a.charged_off_total_usd 
+, 'n/a' as partial_charge_off_amount 
+, a.charged_off_date 
+, 'n/a' as scra_status 
+, 'n/a' as workout_status
+, a.charged_off_reason
+into #fw_charge_off_driver
+from dbt_jason.thrive_loc_core a 
+left join matillion.prod_user b 
+on a.user_Id_prod = b.userId 
+left join matillion.prod_loans c
+on a.loc_id_prod = c.loanId
+where 1=1 
+and a.is_charged_off = 1 
+and a.charged_off_date between '2023-11-01' and '2023-11-30'
+;
+
+--snapshots to count dqs
+drop table #dq_counts;
+select 
+distinct a.loc_id_peach 
+, b.[date] 
+, case when b.overdue_number_days = 1 then 1 else 0 end as overdue_ind
+, row_number() over(partition by b.Loc_Id_peach order by b.[date] asc) as dq_row_num
+into #dq_counts
+from #fw_charge_off_driver a 
+left join dbt.thrive_loc_snap_daily b 
+on a.loc_id_peach = b.loc_id_peach 
+where 1=1 
+and b.overdue_number_days > 0 and b.overdue_number_days < 5 -- peach snapshots seems to have some accounts that don't start their overdue counter at 1 ...
+;
+
+drop table #repeat_dq_check;
+select 
+distinct loc_id_peach 
+, count(overdue_ind) as repeat_dq_count
+into #repeat_dq_check
+from #dq_counts 
+group by loc_id_peach 
+;
+
+drop table #date_first_dq;
+select 
+distinct loc_id_peach 
+, [date] as date_of_first_dq 
+into #date_first_dq
+from #dq_counts 
+where 1=1 
+and dq_row_num = 1
+;
+
+--- paymentss
+drop table #payment_counter_pre
+select 
+distinct a.loc_id_peach
+, b.loan_id 
+, b.id as payment_id
+, b.effective_date 
+, b.status 
+, row_number() over(partition by b.loan_id order by b.effective_date asc) as payment_row_num
+into #payment_counter_pre
+from #fw_charge_off_driver a 
+left join matillion.peach_transactions b 
+on a.loc_id_peach = b.loan_id 
+where 1=1 
+and b.status = 'Succeeded' 
+;
+
+drop table #first_payment_date
+select 
+distinct loc_id_peach 
+, effective_date as first_payment_date
+into #first_payment_date
+from #payment_counter_pre
+where 1=1 
+and payment_row_num = 1 
+;
+
+
+drop table #payment_count
+select 
+distinct loc_id_peach 
+, max(payment_row_num) as tot_payment_count
+into #payment_count
+from #payment_counter_pre
+where 1=1 
+group by loc_id_peach 
+;
+
+select 
+distinct a.loc_id_finwise 
+--, a.loc_id_peach 
+--, a.loc_id_prod
+, a.borrower_name
+, a.loan_amount 
+, a.collection_status 
+, a.origination_date
+, b.first_payment_date 
+, a.most_recent_payment_date
+, e.date_of_first_dq
+, case when d.repeat_dq_count > 1 then 1 else 0 end as repeat_dq_ind
+, case when d.repeat_dq_count > 1 then d.repeat_dq_count else 0 end as repeat_dq_count
+, a.past_due_balance 
+, c.tot_payment_count
+, a.charged_off_principal_usd
+, a.charged_off_total_usd 
+, 'n/a' as partial_charge_off_amount 
+, a.charged_off_date 
+, 'n/a' as scra_status 
+, 'n/a' as workout_status
+, a.charged_off_reason
+, 'Term' as charged_off_reason_text
+from #fw_charge_off_driver a
+left join #first_payment_date b 
+on a.loc_id_peach = b.loc_id_peach
+left join #payment_count c 
+on a.loc_id_peach = c.loc_id_peach
+left join #repeat_dq_check d
+on a.loc_id_peach = d.loc_id_peach
+left join #date_first_dq e 
+on a.loc_id_peach = e.loc_id_peach
+
+where 1=1 
+and a.charged_off_reason = 1 --term only
+;
