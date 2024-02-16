@@ -1,0 +1,63 @@
+
+drop table #app_starter
+select 
+distinct a.userloanapplicationid
+, a.createdAt 
+, a.status_text
+, c.userId 
+, a.mlmodelScore
+, case when a.mlmodelScore between 0 and 00.17999999 then '[0-0.18)'
+when a.mlmodelScore between 0.18 and 0.30 then '[0.18-0.30]'
+when a.mlmodelScore > 0.30 then '> 0.30'
+end as model_cat 
+into #app_starter
+from dbt.thrive_app_details a 
+left join matillion.prod_loans c 
+on a.userloanapplicationid = c.userloanapplicationid
+where 1=1 
+and a.createdAt > '2024-01-01'
+;
+
+drop table #sub_starter
+select 
+distinct b.userId
+, b.createdAt as sub_date
+, row_number() over(partition by b.userId order by b.createdAt asc) as sub_number
+into #sub_starter
+from matillion.prod_userSubscription b 
+where 1=1 
+and b.userId in (select distinct userId from #app_starter)
+;
+
+drop table #driver
+select 
+a.* 
+, b.sub_date 
+, b.sub_number 
+, case when datediff(day, b.sub_date, a.createdAt) > 30 then 'older than 30 days' 
+else 'newer than 30 days'
+end as sub_cat
+into #driver 
+from #app_starter a 
+left join #sub_starter b 
+on a.userId = b.userId 
+where 1=1 
+and sub_number = 1
+;
+
+select top 10 * from #driver 
+
+select 
+model_cat 
+, sub_cat 
+, convert(varchar(10), createdAt) as app_date
+, status_text
+, count(distinct userId) as tot_users
+, count(distinct userloanapplicationId) as tot_apps
+from #driver 
+group by model_cat 
+, sub_cat 
+, convert(varchar(10), createdAt)
+, status_text
+
+;
