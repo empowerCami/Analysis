@@ -1,0 +1,271 @@
+drop table #sub_ca_starter
+select 
+distinct sub.usersubscriptionid 
+, sub.userid 
+, ca.usercashadvanceid
+, ca.usercashadvancesubscriptionid 
+, sub.start_pst as sub_start
+, case when datediff(day, sub.start_pst, ca.advance_pst) between 0 and 30 then 1 else 0 end as m0_adv_ind
+, DATEADD(week, DATEDIFF(week, -1, sub.start_pst), -1) as week_sub
+, datepart(year, sub.start_pst) as year_Sub
+, datepart(month, sub.start_pst) as month_Sub
+, sub.end_pst as sub_closed
+, sub.subscriptionstatus_text 
+, sub.user_sub_sequence 
+, case when sub.user_sub_sequence = 1 then 'New Sub' else 'Resub' end as sub_type 
+, ca.advancenumber 
+, ca.transferfee
+, ca.deliverytype_text 
+, ca.cashadvancestatus_text 
+, ca.amount 
+, ca.advance_pst 
+, DATEADD(week, DATEDIFF(week, -1, ca.advance_pst), -1) as week_adv
+, datepart(year, ca.advance_pst) as year_adv
+, datepart(month, ca.advance_pst) as month_adv 
+
+into #sub_ca_starter
+from dbt.subscription_core sub
+left join dbt.ca_core ca
+on sub.usersubscriptionid = ca.usersubscriptionid 
+where 1=1 
+and sub.start_pst between (GETDATE() - 180) and (GETDATE() - 61)
+;
+
+
+-- find most recent CA in M0 
+drop table #last_m0_ca_rank_pre
+select 
+distinct usersubscriptionid 
+, usercashadvanceid
+, advance_pst 
+, row_number() over(partition by UserSubscriptionId order by advance_pst desc) as M0_adv_rank
+into #last_m0_ca_rank_pre
+from #sub_ca_starter 
+where 1=1 
+and m0_adv_ind = 1
+;
+
+drop table #last_m0_ca_rank
+select 
+distinct usersubscriptionid 
+, usercashadvanceid
+, advance_pst 
+into #last_m0_ca_rank
+from #last_m0_ca_rank_pre
+where 1=1 
+and M0_adv_rank = 1
+;
+
+
+-- grab users that advanced in M0 and the info of the last advance they took in m0
+drop table #first_ca_M0
+select 
+distinct a.usersubscriptionid 
+, a.userid 
+, a.usercashadvanceid as firstCA_usercashadvanceid 
+, a.week_sub 
+, a.sub_start
+, a.month_sub as sub_M0
+, a.subscriptionstatus_text 
+, a.sub_type 
+, a.deliverytype_text as firstCA_deliverytype 
+, a.cashadvancestatus_text as firstCA_castatus
+, a.amount as firstCA_amount 
+, a.week_adv as firstCA_advweek
+, a.month_adv as adv_M0
+, c.usercashadvanceid
+, datediff(day, a.sub_start, a.advance_pst) as daydiff_subadv
+, datediff(day, a.sub_start, a.sub_closed) as daydiff_subclose
+, case when datediff(day, a.sub_start, a.sub_closed) between 0 and 30 then 'M0' 
+when datediff(day, a.sub_start, a.sub_closed) between 31 and 60 then 'M1'
+when a.sub_closed is null then 'n/a'
+else 'M2 +'
+end as daydiff_subclose_cat
+, 'M0 active' as m0_status
+into #first_ca_M0
+from #sub_ca_starter a 
+left join #last_m0_ca_rank c 
+on a.usercashadvanceid = c.usercashadvanceid
+where 1=1 
+and c.usercashadvanceid is not null
+and datediff(day, a.sub_start, a.advance_pst) between 0 and 30 -- filtering for people that took an advance within M0
+and a.cashadvancestatus_text <> 'Active'
+and a.usercashadvanceid is not null
+; 
+
+
+-- grab users from M0 active cohort that have activity in M1 (this may not be their second advance, could be third - just checking for MoM usage)
+drop table #M1_activity
+select 
+distinct a.usersubscriptionid
+, 'M1 active' as M1_status
+, datediff(day, a.sub_start, a.advance_pst) as daydiff_subadv
+, row_number() over(partition by a.UserSubscriptionId order by a.advance_pst asc) as adv_rank
+into #M1_activity
+from #sub_ca_starter a 
+left join #first_ca_M0 b 
+on a.usersubscriptionid = b.usersubscriptionid
+where 1=1 
+and datediff(day, a.sub_start, a.advance_pst) between 31 and 60 -- M1
+and b.usercashadvanceid is not null
+and b.usersubscriptionid is not null
+;
+
+--- flagging the churners
+drop table #M1_churn 
+select 
+distinct a.usersubscriptionid
+, 'CA churn' as M1_status
+into #M1_churn
+from #first_ca_M0 a
+left join #M1_activity b
+on a.usersubscriptionid = b.usersubscriptionid 
+where b.usersubscriptionid is null -- not a match, meaning no activity 
+;
+-- select count(*), count(distinct usersubscriptionid) from #M1_activity --205980, 262567
+-- select count(*), count(distinct usersubscriptionid) from #first_ca_M0 --468547
+
+------GENERAL CHURN READS 
+-- drop table #churn_read_pre
+-- select 
+-- distinct a.usersubscriptionid
+-- , a.week_sub  
+-- , a.sub_type
+-- , b.M1_status 
+-- , c.m0_status
+-- into #churn_read_pre
+-- from #sub_ca_starter a 
+-- left join #M1_activity b
+-- on a.usersubscriptionid = b.usersubscriptionid 
+-- left join #first_ca_M0 c 
+-- on a.usersubscriptionid = c.usersubscriptionid 
+-- ;
+
+-- select 
+-- week_sub 
+-- , sub_type 
+-- , m1_status 
+-- , m0_status
+-- , count(distinct usersubscriptionid) as tot_subs 
+-- from #churn_read_pre 
+-- group by week_sub 
+-- , sub_type 
+-- , m1_status  
+-- , m0_status
+-- ;
+
+drop table #M1_status
+select 
+distinct usersubscriptionid 
+, M1_status 
+into #M1_status
+from #M1_activity 
+UNION
+SELECT
+distinct usersubscriptionid 
+, M1_status 
+from #M1_churn 
+;
+
+--- check if opened thrive 
+drop table #thrive_check_pre
+select 
+distinct a.userId 
+, b.originated_at as thrive_orig_date 
+, b.current_status as thrive_current_status
+, row_number() over(partition by a.UserId order by b.originated_at asc) as thrive_rank
+into #thrive_check_pre
+from #first_ca_M0 a 
+left join dbt.thrive_loc_core b 
+on a.userid = b.user_id_prod 
+where 1=1 
+and b.user_id_prod is not null
+and b.originated_at >= a.sub_start
+;
+
+drop table #thrive_check
+select 
+* 
+, 'Opened Thrive' as thrive_open_status
+into #thrive_check
+from #thrive_check_pre 
+where thrive_rank = 1 
+;
+
+--- App access check 
+drop table #app_access_start 
+select 
+distinct a.userId 
+, a.sub_start
+, b.DateAccessed
+, convert(varchar(7), b.DateAccessed , 23) as access_month -- converts the month into a easy to read format. I f you want to do a datediff function use the original field
+, row_number() over(partition by b.userId order by DateAccessed desc) as access_num_desc 
+into #app_access_start 
+from #first_ca_M0 a
+left join matillion.prod_AccessLog b 
+on a.userId = b.userId 
+where 1=1 
+and datediff(day, a.sub_start, b.DateAccessed) between 0 and 60 
+;
+
+-- will pull most recent month the user accessed the app
+drop table #app_access
+select 
+* 
+, datediff(day, sub_start, DateAccessed) as sub_access_datediff
+, case when datediff(day, sub_start, DateAccessed) between 0 and 30 then 'M0'
+when datediff(day, sub_start, DateAccessed) between 31 and 60 then 'M1'
+else 'data issue'
+end as sub_access_datediff_cat
+into #app_access
+from #app_access_start 
+where access_num_desc = 1 
+;
+
+
+drop table #CA_retention_final
+select 
+a.* 
+, b.M1_status 
+, c.thrive_orig_date 
+, c.thrive_open_status 
+, c.thrive_current_status
+, case when datediff(day, a.sub_start, c.thrive_orig_date) between 0 and 30 then 'M0'
+when datediff(day, a.sub_start, c.thrive_orig_date) between 31 and 60 then 'M1'
+when c.thrive_orig_date is null then 'n/a'
+else 'M2+'
+end as thrive_sub_datediff
+, d.sub_access_datediff 
+, d.sub_access_datediff_cat
+-- waterfall cases 
+, case when firstCA_castatus in ('Defaulted', 'Late') then 'Did not pay last advance in M0' 
+when firstCA_castatus in ('Repaid') and daydiff_subclose_cat = 'M0' and subscriptionstatus_text = 'Closed By User' then 'Repaid last M0 advance but sub closed in M0'
+when firstCA_castatus in ('Repaid') and daydiff_subclose_cat = 'M1' and subscriptionstatus_text = 'Closed By User' then 'Repaid last M0 advance but sub closed in M1'
+when firstCA_castatus in ('Repaid') and daydiff_subclose_cat not in ('M0', 'M1') and m0_status = 'M0 active' and thrive_open_status is not null then 'Repaid last M0 advance, open in M0 and M1, opened Thrive in M0 or M1'
+when firstCA_castatus in ('Repaid') and daydiff_subclose_cat not in ('M0', 'M1') and m0_status = 'M0 active' and thrive_open_status is null and sub_access_datediff_cat = 'M0' then 'Repaid last M0 advance, open in M0 and M1, did not open Thrive in M0 or M1, last active in M0'
+when firstCA_castatus in ('Repaid') and daydiff_subclose_cat not in ('M0', 'M1') and m0_status = 'M0 active' and thrive_open_status is null and sub_access_datediff_cat = 'M1' then 'Repaid last M0 advance, open in M0 and M1, did not open Thrive in M0 or M1, last active in M1'
+else 'other'
+end as waterfall_cat
+
+into #CA_retention_final
+from #first_ca_M0 a 
+left join #M1_status b 
+on a.usersubscriptionid = b.usersubscriptionid
+left join #thrive_check c 
+on a.userId = c.userId
+left join #app_access d 
+on a.userid = d.userid
+;
+
+
+select 
+waterfall_cat
+, firstCA_amount
+, count(distinct usersubscriptionid) as tot_subs
+from #CA_retention_final 
+where 1=1 
+and M1_status = 'CA churn'
+and week_sub <= '2024-04-21'
+group by waterfall_cat, firstCA_amount
+;
+
